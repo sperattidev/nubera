@@ -9,7 +9,7 @@ import {
   type Block,
   type PlayRecord,
   type PoolAsset,
-} from "./index.js";
+} from "./index.ts";
 
 const TZ = "America/Argentina/Buenos_Aires";
 const NOW = new Date("2026-10-06T15:00:00Z");

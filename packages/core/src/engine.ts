@@ -1,4 +1,4 @@
-import type { Block } from "./blocks.js";
+import type { Block } from "./blocks.ts";
 
 export interface PoolAsset {
   id: string;

@@ -1,5 +1,5 @@
-import { localDate, localTime } from "./blocks.js";
-import type { PlayRecord, PoolAsset } from "./engine.js";
+import { localDate, localTime } from "./blocks.ts";
+import type { PlayRecord, PoolAsset } from "./engine.ts";
 
 export interface AdsConfig {
   everyTracks: number;
