@@ -15,3 +15,4 @@ dist/
 
 # documentación privada (estrategia comercial)
 docs/private/
+.pnpm-store/
