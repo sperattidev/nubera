@@ -17,6 +17,8 @@ const app = buildApp({
   db,
   storage: new LocalMediaStorage(mediaDir, maxUploadBytes),
   maxUploadBytes,
+  secureCookies: process.env.NODE_ENV === "production",
+  trustProxy: process.env.TRUST_PROXY === "true",
 });
 app.addHook("onClose", async () => {
   await close();
