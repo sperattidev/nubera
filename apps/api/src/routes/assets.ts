@@ -44,21 +44,22 @@ interface Options {
 }
 
 export const assetRoutes: FastifyPluginAsync<Options> = async (app, { db, storage }) => {
-  async function requireStation(stationId: string) {
+  // Una emisora de otro cliente se informa como inexistente (no revela su existencia).
+  async function requireStation(stationId: string, tenantId: string) {
     const [station] = await db
       .select({ id: stations.id })
       .from(stations)
-      .where(eq(stations.id, stationId))
+      .where(and(eq(stations.id, stationId), eq(stations.tenantId, tenantId)))
       .limit(1);
     if (!station) {
       throw new HttpError(404, "Emisora no encontrada");
     }
   }
 
-  app.get("/stations/:stationId/assets", async (request) => {
+  app.get("/stations/:stationId/assets", { preHandler: app.authorize("assets:read") }, async (request) => {
     const { stationId } = stationParams.parse(request.params);
     const { category, limit, offset } = listQuery.parse(request.query);
-    await requireStation(stationId);
+    await requireStation(stationId, request.user!.tenantId);
 
     const filter = category
       ? and(eq(assets.stationId, stationId), eq(assets.category, category))
@@ -73,8 +74,9 @@ export const assetRoutes: FastifyPluginAsync<Options> = async (app, { db, storag
     return { items, limit, offset };
   });
 
-  app.get("/stations/:stationId/assets/:assetId", async (request) => {
+  app.get("/stations/:stationId/assets/:assetId", { preHandler: app.authorize("assets:read") }, async (request) => {
     const { stationId, assetId } = assetParams.parse(request.params);
+    await requireStation(stationId, request.user!.tenantId);
     const [asset] = await db
       .select()
       .from(assets)
@@ -87,12 +89,12 @@ export const assetRoutes: FastifyPluginAsync<Options> = async (app, { db, storag
   });
 
   // Los campos de texto (title, artist, category) deben enviarse antes del archivo.
-  app.post("/stations/:stationId/assets", async (request, reply) => {
+  app.post("/stations/:stationId/assets", { preHandler: app.authorize("assets:write") }, async (request, reply) => {
     const { stationId } = stationParams.parse(request.params);
     if (!request.isMultipart()) {
       throw new HttpError(415, "Se esperaba multipart/form-data");
     }
-    await requireStation(stationId);
+    await requireStation(stationId, request.user!.tenantId);
 
     const fields: Record<string, string> = {};
     let stored: Awaited<ReturnType<MediaStorage["save"]>> | undefined;
