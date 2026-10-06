@@ -18,6 +18,7 @@ apps/
   api/          API HTTP (Fastify + TypeScript)
 packages/
   ai/           Interfaces de proveedores de IA e implementaciones
+  db/           Esquema (Drizzle ORM), migraciones y datos de demostración
 infra/
   docker/       Entorno de desarrollo (Docker Compose, Icecast)
   liquidsoap/   Script del motor de audio
@@ -54,6 +55,28 @@ docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build ice
 - Stream: `http://127.0.0.1:58000/live` (puerto configurable con `NUBERA_ICECAST_PORT`).
 - Si no hay audios en la biblioteca, emite un tono para que el aire nunca quede mudo.
 - Definir las contraseñas `ICECAST_*` en `.env`; los valores de `.env.example` son ficticios.
+
+## Base de datos y biblioteca de audios
+
+```bash
+# con los servicios de apoyo levantados y DATABASE_URL definida
+pnpm --filter @nubera/db db:migrate   # aplica las migraciones
+pnpm --filter @nubera/db db:seed      # crea una emisora de demostración
+pnpm --filter @nubera/api start       # API en http://127.0.0.1:3000
+```
+
+Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con `pnpm --filter @nubera/db db:generate`.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/health` | Estado del servicio |
+| GET | `/stations/:stationId/assets` | Lista audios (`category`, `limit`, `offset`) |
+| GET | `/stations/:stationId/assets/:assetId` | Detalle de un audio |
+| POST | `/stations/:stationId/assets` | Sube un audio (`multipart/form-data`) |
+
+En la subida, los campos `title`, `artist` y `category` deben enviarse antes del archivo. Formatos: mp3, wav, flac, ogg, m4a y aac. Los archivos se guardan por contenido (SHA-256), por lo que un mismo audio no se duplica.
+
+> La API todavía **no tiene autenticación**: solo debe escuchar en loopback y no exponerse a internet hasta que se incorpore.
 
 ## Licencia
 
