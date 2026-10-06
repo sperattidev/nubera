@@ -81,6 +81,30 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
+  # Panel web. Habla con la API por la red interna; el navegador solo ve este servicio.
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:3000
+      # Solo activar detrás de un proxy propio (Caddy, Cloudflare): usa X-Forwarded-For del cliente.
+      NUBERA_TRUST_FORWARDED: "false"
+    ports:
+      - "127.0.0.1:${NUBERA_WEB_PORT:-3001}:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/login >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 1.0
+
   # El motor de audio no depende de la API para arrancar: si ésta cae, sigue al
   # aire con la biblioteca local de emergencia.
   liquidsoap:
