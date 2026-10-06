@@ -1,0 +1,17 @@
+# secretos y entorno
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# dependencias y build
+node_modules/
+dist/
+.next/
+.turbo/
+# datos locales de contenedores y medios
+/data/
+*.log
+
+# documentación privada (estrategia comercial)
+docs/private/
