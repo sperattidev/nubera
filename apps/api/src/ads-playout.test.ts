@@ -38,7 +38,11 @@ async function next() {
   return response;
 }
 
-/** Pide n audios, los confirma como emitidos y devuelve sus categorías en orden. */
+/**
+ * Pide n audios, los confirma como emitidos y devuelve sus categorías en orden.
+ * Al terminar avanza el reloj: el reporte excluye el instante exacto "ahora", y
+ * sin esto la última emisión quedaría fuera según qué campaña desempate el azar.
+ */
 async function playSequence(n: number): Promise<{ category: string; title: string }[]> {
   const sequence: { category: string; title: string }[] = [];
   for (let i = 0; i < n; i++) {
@@ -48,6 +52,7 @@ async function playSequence(n: number): Promise<{ category: string; title: strin
     await harness.app.inject({ method: "POST", url: `/playout/plays/${playId}/started`, headers: { authorization: `Bearer ${token}` } });
     sequence.push({ category, title });
   }
+  tick();
   return sequence;
 }
 
@@ -188,7 +193,6 @@ describe("reporte de emisiones del anunciante", () => {
     const spot = await addAsset(harness.db, fx.stationA, { title: '=SUMA(1,2) "oferta"', category: "ad" });
     await addCampaign(harness.db, fx.stationA, advertiser.id, [spot.id], { name: "Verano, 2026" });
     await playSequence(3);
-    tick(); // el reporte excluye el instante exacto "to" (ahora)
 
     const response = await report(advertiser.id, "?format=csv");
     expect(response.statusCode).toBe(200);
