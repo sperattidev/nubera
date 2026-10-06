@@ -18,6 +18,7 @@ apps/
   api/          API HTTP (Fastify + TypeScript)
 packages/
   ai/           Interfaces de proveedores de IA e implementaciones
+  core/         Motor de rotación y grilla horaria (lógica pura)
   db/           Esquema (Drizzle ORM), migraciones y datos de demostración
 infra/
   docker/       Entorno de desarrollo (Docker Compose, Icecast)
@@ -78,15 +79,56 @@ Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con
 | GET | `/stations/:stationId/assets` | `assets:read` | Lista audios (`category`, `limit`, `offset`) |
 | GET | `/stations/:stationId/assets/:assetId` | `assets:read` | Detalle de un audio |
 | POST | `/stations/:stationId/assets` | `assets:write` | Sube un audio (`multipart/form-data`) |
+| GET | `/stations/:stationId/schedule` | `schedule:read` | Bloques de la grilla semanal |
+| POST, PUT, DELETE | `/stations/:stationId/schedule[/:blockId]` | `schedule:write` | Crea, edita y borra bloques |
+| GET | `/stations/:stationId/schedule/now` | `schedule:read` | Bloque vigente (`at` opcional) |
+| GET | `/stations/:stationId/plays` | `plays:read` | Historial de lo emitido (`from`, `to`, `limit`) |
+| GET, POST, DELETE | `/stations/:stationId/agent-tokens[/:tokenId]` | `agents:manage` | Tokens del motor de audio |
+| GET | `/playout/next` | token de agente | Próximo audio a emitir (204 si no hay) |
+| POST | `/playout/plays/:playId/started` | token de agente | Confirma que el audio empezó a sonar |
 
 En la subida, los campos `title`, `artist` y `category` deben enviarse antes del archivo. Formatos: mp3, wav, flac, ogg, m4a y aac. Los archivos se guardan por contenido (SHA-256), por lo que un mismo audio no se duplica.
+
+## Programación y motor de audio
+
+La grilla semanal se compone de **bloques**: días, horario local de la emisora y reglas de rotación. Si dos bloques se superponen, gana el que empieza más tarde. Un bloque no cruza la medianoche; para eso se usan dos.
+
+```json
+{
+  "name": "Mañana",
+  "days": [1, 2, 3, 4, 5],
+  "start": "06:00",
+  "end": "12:00",
+  "rotation": {
+    "pool": [{ "category": "music", "weight": 4 }, { "category": "institutional", "weight": 1 }],
+    "insertions": [{ "category": "jingle", "everyTracks": 4 }],
+    "artistSeparation": 3,
+    "trackSeparationMinutes": 120
+  }
+}
+```
+
+- `pool`: categorías de las que se elige, ponderadas por `weight`.
+- `insertions`: cada N emisiones se intercala una categoría (p. ej. un jingle).
+- `artistSeparation` y `trackSeparationMinutes`: evitan repetir artista o tema. Si no hay alternativa, se aflojan en lugar de dejar el aire sin música.
+
+El motor (`packages/core`) es una función pura y está cubierto por tests. Liquidsoap pide cada audio a `GET /playout/next` con un **token de agente** (credencial propia de la emisora, revocable, que se muestra una sola vez) y confirma cada emisión; eso alimenta el historial. Si la API no responde, sigue al aire con la biblioteca local de emergencia (`data/media/music`) y, en última instancia, con un tono.
+
+```bash
+# 1. levantar todo (la API aplica las migraciones al iniciar)
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build
+
+# 2. crear un token de agente (POST /stations/:id/agent-tokens, como dueño)
+#    y guardarlo en .env como NUBERA_AGENT_TOKEN; luego:
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d liquidsoap
+```
 
 ## Autenticación y permisos
 
 - Sesiones en base de datos con cookie `HttpOnly` y `SameSite=Lax` (`Secure` con `NODE_ENV=production`). Solo se guarda el hash del token. Duración: 7 días.
 - Contraseñas con scrypt, mínimo 12 caracteres. El login tiene límite de intentos por IP (5 por minuto) y no revela si el email existe.
 - Cada usuario pertenece a un cliente y solo ve los datos del suyo; lo ajeno se informa como inexistente (404).
-- Roles: `owner` (todo), `programmer` (biblioteca, lectura y escritura), `announcer` (biblioteca, lectura) y `sales` (sin acceso a la biblioteca por ahora).
+- Roles: `owner` (todo), `programmer` (biblioteca y grilla, lectura y escritura), `announcer` (biblioteca y grilla, lectura) y `sales` (solo el historial de emisiones, por ahora).
 - Detrás de un proxy propio, definir `TRUST_PROXY=true` para que el límite de intentos use la IP real.
 
 Alta del primer dueño de un cliente (la contraseña se pasa por variable de entorno, no por argumento):
