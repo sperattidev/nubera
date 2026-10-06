@@ -67,16 +67,36 @@ pnpm --filter @nubera/api start       # API en http://127.0.0.1:3000
 
 Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con `pnpm --filter @nubera/db db:generate`.
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/health` | Estado del servicio |
-| GET | `/stations/:stationId/assets` | Lista audios (`category`, `limit`, `offset`) |
-| GET | `/stations/:stationId/assets/:assetId` | Detalle de un audio |
-| POST | `/stations/:stationId/assets` | Sube un audio (`multipart/form-data`) |
+| Método | Ruta | Permiso | Descripción |
+|---|---|---|---|
+| GET | `/health` | público | Estado del servicio |
+| POST | `/auth/login` | público | Inicia sesión (cookie `nubera_session`) |
+| POST | `/auth/logout` | sesión | Cierra la sesión |
+| GET | `/auth/me` | sesión | Usuario actual |
+| POST | `/auth/password` | sesión | Cambia la contraseña y cierra las demás sesiones |
+| GET, POST | `/users` | `users:manage` | Lista y crea usuarios del propio cliente |
+| GET | `/stations/:stationId/assets` | `assets:read` | Lista audios (`category`, `limit`, `offset`) |
+| GET | `/stations/:stationId/assets/:assetId` | `assets:read` | Detalle de un audio |
+| POST | `/stations/:stationId/assets` | `assets:write` | Sube un audio (`multipart/form-data`) |
 
 En la subida, los campos `title`, `artist` y `category` deben enviarse antes del archivo. Formatos: mp3, wav, flac, ogg, m4a y aac. Los archivos se guardan por contenido (SHA-256), por lo que un mismo audio no se duplica.
 
-> La API todavía **no tiene autenticación**: solo debe escuchar en loopback y no exponerse a internet hasta que se incorpore.
+## Autenticación y permisos
+
+- Sesiones en base de datos con cookie `HttpOnly` y `SameSite=Lax` (`Secure` con `NODE_ENV=production`). Solo se guarda el hash del token. Duración: 7 días.
+- Contraseñas con scrypt, mínimo 12 caracteres. El login tiene límite de intentos por IP (5 por minuto) y no revela si el email existe.
+- Cada usuario pertenece a un cliente y solo ve los datos del suyo; lo ajeno se informa como inexistente (404).
+- Roles: `owner` (todo), `programmer` (biblioteca, lectura y escritura), `announcer` (biblioteca, lectura) y `sales` (sin acceso a la biblioteca por ahora).
+- Detrás de un proxy propio, definir `TRUST_PROXY=true` para que el límite de intentos use la IP real.
+
+Alta del primer dueño de un cliente (la contraseña se pasa por variable de entorno, no por argumento):
+
+```bash
+NUBERA_USER_PASSWORD='...' pnpm --filter @nubera/api create-user \
+  --tenant demo --email dueno@radio.com --name "Nombre" --role owner
+```
+
+> Antes de exponer la API fuera de loopback hace falta HTTPS y revisar el modelo de amenazas (CSRF, CORS y cabeceras de seguridad).
 
 ## Licencia
 
