@@ -19,7 +19,8 @@ apps/
 packages/
   ai/           Interfaces de proveedores de IA e implementaciones
 infra/
-  docker/       Entorno de desarrollo (Docker Compose)
+  docker/       Entorno de desarrollo (Docker Compose, Icecast)
+  liquidsoap/   Script del motor de audio
 ```
 
 Se agregarán `web`, `agent`, `listener`, `db` y `core` a medida que avance el desarrollo.
@@ -40,6 +41,19 @@ pnpm test
 cp .env.example .env   # completar valores
 docker compose --env-file .env -f infra/docker/compose.dev.yml up -d
 ```
+
+## Streaming de desarrollo
+
+Icecast recibe la emisión de Liquidsoap en el montaje llamado live. Ambos corren en contenedores aislados y Icecast solo escucha en loopback.
+
+```bash
+mkdir -p data/media/music   # copiar aquí audios (carpeta ignorada por git)
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build icecast liquidsoap
+```
+
+- Stream: `http://127.0.0.1:58000/live` (puerto configurable con `NUBERA_ICECAST_PORT`).
+- Si no hay audios en la biblioteca, emite un tono para que el aire nunca quede mudo.
+- Definir las contraseñas `ICECAST_*` en `.env`; los valores de `.env.example` son ficticios.
 
 ## Licencia
 
