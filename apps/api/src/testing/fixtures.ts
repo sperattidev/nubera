@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { agentTokens, assets, scheduleBlocks, type Database } from "@nubera/db";
+import {
+  advertisers,
+  agentTokens,
+  assets,
+  campaignAssets,
+  campaigns,
+  scheduleBlocks,
+  type Database,
+} from "@nubera/db";
 import { rotationSchema } from "@nubera/core";
 import { generateAgentToken } from "../auth/agent.js";
 
@@ -40,6 +48,42 @@ export async function addAllDayBlock(db: Database, stationId: string, rotation: 
     })
     .returning();
   return block!;
+}
+
+export async function addAdvertiser(
+  db: Database,
+  tenantId: string,
+  data: { name: string; industry?: string | null; isActive?: boolean },
+) {
+  const [advertiser] = await db
+    .insert(advertisers)
+    .values({ tenantId, name: data.name, industry: data.industry ?? null, isActive: data.isActive ?? true })
+    .returning();
+  return advertiser!;
+}
+
+/** Campaña vigente todo octubre de 2026, todos los días y todo el día, salvo que se indique otra cosa. */
+export async function addCampaign(
+  db: Database,
+  stationId: string,
+  advertiserId: string,
+  assetIds: string[],
+  overrides: Partial<typeof campaigns.$inferInsert> = {},
+) {
+  const [campaign] = await db
+    .insert(campaigns)
+    .values({
+      stationId,
+      advertiserId,
+      name: "Campaña",
+      startsOn: "2026-10-01",
+      endsOn: "2026-10-31",
+      days: [1, 2, 3, 4, 5, 6, 7],
+      ...overrides,
+    })
+    .returning();
+  await db.insert(campaignAssets).values(assetIds.map((assetId) => ({ campaignId: campaign!.id, assetId })));
+  return campaign!;
 }
 
 /** Crea un token de agente y devuelve el valor en claro. */

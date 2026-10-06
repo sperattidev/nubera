@@ -8,6 +8,8 @@ export const PERMISSIONS = [
   "schedule:read",
   "schedule:write",
   "plays:read",
+  "ads:read",
+  "ads:write",
   "agents:manage",
   "users:manage",
 ] as const;
@@ -15,9 +17,9 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 const GRANTS: Record<Role, readonly Permission[]> = {
   owner: PERMISSIONS,
-  programmer: ["assets:read", "assets:write", "schedule:read", "schedule:write", "plays:read"],
+  programmer: ["assets:read", "assets:write", "schedule:read", "schedule:write", "plays:read", "ads:read"],
   announcer: ["assets:read", "schedule:read", "plays:read"],
-  sales: ["plays:read"],
+  sales: ["plays:read", "ads:read", "ads:write"],
 };
 
 export function can(role: Role, permission: Permission): boolean {

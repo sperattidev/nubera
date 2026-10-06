@@ -6,10 +6,12 @@ import type { Database } from "@nubera/db";
 import { authPlugin } from "./auth/plugin.js";
 import { DEFAULT_SESSION_TTL_SECONDS } from "./auth/session.js";
 import { HttpError } from "./errors.js";
-import { assetRoutes } from "./routes/assets.js";
+import { adRoutes } from "./routes/ads.js";
 import { agentRoutes } from "./routes/agents.js";
+import { assetRoutes } from "./routes/assets.js";
 import { authRoutes } from "./routes/auth.js";
 import { playoutRoutes } from "./routes/playout.js";
+import { reportRoutes } from "./routes/reports.js";
 import { scheduleRoutes } from "./routes/schedule.js";
 import { userRoutes } from "./routes/users.js";
 import { EmptyFileError, FileTooLargeError, type MediaStorage } from "./storage.js";
@@ -79,6 +81,8 @@ export function buildApp({
   app.register(scheduleRoutes, { db, now });
   app.register(agentRoutes, { db });
   app.register(playoutRoutes, { db, now, random });
+  app.register(adRoutes, { db });
+  app.register(reportRoutes, { db, now });
 
   return app;
 }
