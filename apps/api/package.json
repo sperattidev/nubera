@@ -10,6 +10,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "fastify": "^5.12.5"
+    "@fastify/multipart": "^10.1.2",
+    "@nubera/db": "workspace:^",
+    "fastify": "^5.12.5",
+    "zod": "^4.6.5"
   }
 }
