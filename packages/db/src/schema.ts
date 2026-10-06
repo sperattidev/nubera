@@ -2,11 +2,13 @@ import { ASSET_CATEGORIES, type Rotation } from "@nubera/core";
 import {
   bigint,
   boolean,
+  date,
   index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -123,6 +125,69 @@ export const scheduleBlocks = pgTable(
   (t) => [index("schedule_blocks_station_idx").on(t.stationId)],
 );
 
+/** Anunciante de un cliente. El rubro se usa para la exclusividad dentro de una tanda. */
+export const advertisers = pgTable(
+  "advertisers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    industry: text("industry"),
+    contactName: text("contact_name"),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
+    notes: text("notes"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("advertisers_tenant_name_idx").on(t.tenantId, t.name)],
+);
+
+/** Campaña de un anunciante en una emisora. Las fechas son locales de la emisora. */
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    stationId: uuid("station_id")
+      .notNull()
+      .references(() => stations.id, { onDelete: "cascade" }),
+    advertiserId: uuid("advertiser_id")
+      .notNull()
+      .references(() => advertisers.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startsOn: date("starts_on", { mode: "string" }).notNull(),
+    endsOn: date("ends_on", { mode: "string" }).notNull(),
+    /** Tope de emisiones por día local; null = sin tope. */
+    dailyPlays: integer("daily_plays"),
+    weight: integer("weight").notNull().default(1),
+    days: integer("days").array().notNull(),
+    startMinute: integer("start_minute").notNull().default(0),
+    endMinute: integer("end_minute").notNull().default(1440),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("campaigns_station_idx").on(t.stationId),
+    index("campaigns_advertiser_idx").on(t.advertiserId),
+  ],
+);
+
+/** Avisos (audios de categoría "ad") que rota una campaña. */
+export const campaignAssets = pgTable(
+  "campaign_assets",
+  {
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    assetId: uuid("asset_id")
+      .notNull()
+      .references(() => assets.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.campaignId, t.assetId] })],
+);
+
 /**
  * Registro de emisiones (base del as-run y de los reportes de derechos).
  * Guarda una copia de los datos del audio para conservar el historial exacto.
@@ -136,6 +201,8 @@ export const plays = pgTable(
       .references(() => stations.id, { onDelete: "cascade" }),
     assetId: uuid("asset_id").references(() => assets.id, { onDelete: "set null" }),
     blockId: uuid("block_id").references(() => scheduleBlocks.id, { onDelete: "set null" }),
+    /** Solo en avisos: campaña a la que pertenece la emisión. */
+    campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
     title: text("title").notNull(),
     artist: text("artist"),
     category: assetCategory("category").notNull(),
@@ -170,5 +237,7 @@ export type User = typeof users.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type ScheduleBlock = typeof scheduleBlocks.$inferSelect;
+export type Advertiser = typeof advertisers.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;
 export type Play = typeof plays.$inferSelect;
 export type AgentToken = typeof agentTokens.$inferSelect;

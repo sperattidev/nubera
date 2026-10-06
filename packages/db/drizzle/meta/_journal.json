@@ -22,6 +22,13 @@
       "when": 1791323722039,
       "tag": "0002_scheduling",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791324985254,
+      "tag": "0003_ads",
+      "breakpoints": true
     }
   ]
 }

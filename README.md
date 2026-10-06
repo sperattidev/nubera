@@ -18,7 +18,7 @@ apps/
   api/          API HTTP (Fastify + TypeScript)
 packages/
   ai/           Interfaces de proveedores de IA e implementaciones
-  core/         Motor de rotación y grilla horaria (lógica pura)
+  core/         Motor de rotación, grilla horaria y tandas publicitarias (lógica pura)
   db/           Esquema (Drizzle ORM), migraciones y datos de demostración
 infra/
   docker/       Entorno de desarrollo (Docker Compose, Icecast)
@@ -86,6 +86,11 @@ Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con
 | GET, POST, DELETE | `/stations/:stationId/agent-tokens[/:tokenId]` | `agents:manage` | Tokens del motor de audio |
 | GET | `/playout/next` | token de agente | Próximo audio a emitir (204 si no hay) |
 | POST | `/playout/plays/:playId/started` | token de agente | Confirma que el audio empezó a sonar |
+| GET | `/advertisers[/:advertiserId]` | `ads:read` | Lista y detalle de anunciantes |
+| POST, PUT, DELETE | `/advertisers[/:advertiserId]` | `ads:write` | Alta, edición y baja de anunciantes |
+| GET | `/stations/:stationId/campaigns[/:campaignId]` | `ads:read` | Campañas (`advertiserId`, `active`) |
+| POST, PUT, DELETE | `/stations/:stationId/campaigns[/:campaignId]` | `ads:write` | Alta, edición y baja de campañas |
+| GET | `/advertisers/:advertiserId/report` | `ads:read` | Certificado de emisión (`from`, `to`, `stationId`, `format=json\|csv`) |
 
 En la subida, los campos `title`, `artist` y `category` deben enviarse antes del archivo. Formatos: mp3, wav, flac, ogg, m4a y aac. Los archivos se guardan por contenido (SHA-256), por lo que un mismo audio no se duplica.
 
@@ -123,12 +128,33 @@ docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build
 docker compose --env-file .env -f infra/docker/compose.dev.yml up -d liquidsoap
 ```
 
+## Publicidad
+
+Un **anunciante** (con su rubro) tiene **campañas** en una emisora: vigencia (fechas locales, inclusivas), días y franja horaria, un tope de emisiones por día, un peso relativo y los avisos que rota (audios de categoría `ad`). Las tandas se activan por bloque de la grilla:
+
+```json
+"rotation": {
+  "pool": [{ "category": "music", "weight": 1 }],
+  "ads": { "everyTracks": 4, "spotsPerBreak": 2 }
+}
+```
+
+Cada `everyTracks` emisiones se emite una tanda de hasta `spotsPerBreak` avisos. Para elegirlos:
+
+- Solo cuentan campañas activas, vigentes ahora y que no llegaron a su tope diario.
+- **Exclusividad:** dentro de una tanda no se repite el anunciante ni el rubro. Si por eso no queda ninguna campaña, la tanda termina antes en lugar de romper la regla.
+- Gana la campaña con menos emisiones hoy en proporción a su peso, y dentro de ella el aviso que hace más tiempo no suena.
+- Si no hay campañas elegibles, el aire sigue con música.
+- La categoría `ad` no debe incluirse en el `pool` del bloque.
+
+`GET /advertisers/:id/report` devuelve el **certificado de emisión**: cada aviso que efectivamente salió al aire (confirmado por el motor), con su hora local, y los totales por día y por campaña. Con `format=csv` se descarga para abrir en una planilla.
+
 ## Autenticación y permisos
 
 - Sesiones en base de datos con cookie `HttpOnly` y `SameSite=Lax` (`Secure` con `NODE_ENV=production`). Solo se guarda el hash del token. Duración: 7 días.
 - Contraseñas con scrypt, mínimo 12 caracteres. El login tiene límite de intentos por IP (5 por minuto) y no revela si el email existe.
 - Cada usuario pertenece a un cliente y solo ve los datos del suyo; lo ajeno se informa como inexistente (404).
-- Roles: `owner` (todo), `programmer` (biblioteca y grilla, lectura y escritura), `announcer` (biblioteca y grilla, lectura) y `sales` (solo el historial de emisiones, por ahora).
+- Roles: `owner` (todo), `programmer` (biblioteca y grilla, lectura y escritura), `announcer` (biblioteca y grilla, lectura) y `sales` (anunciantes y campañas, lectura y escritura, e historial de emisiones). El programador puede ver la publicidad pero no modificarla.
 - Detrás de un proxy propio, definir `TRUST_PROXY=true` para que el límite de intentos use la IP real.
 
 Alta del primer dueño de un cliente (la contraseña se pasa por variable de entorno, no por argumento):

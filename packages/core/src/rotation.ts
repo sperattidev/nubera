@@ -24,6 +24,17 @@ export const rotationSchema = z.object({
     .default([]),
   artistSeparation: z.number().int().min(0).max(50).default(3),
   trackSeparationMinutes: z.number().int().min(0).max(1440).default(120),
+  /**
+   * Tandas publicitarias: cada `everyTracks` emisiones se emiten hasta
+   * `spotsPerBreak` avisos de las campañas vigentes. Sin esta clave, el bloque
+   * no emite publicidad. La categoría "ad" no debe incluirse en el pool.
+   */
+  ads: z
+    .object({
+      everyTracks: z.number().int().min(1).max(50),
+      spotsPerBreak: z.number().int().min(1).max(6),
+    })
+    .optional(),
 });
 
 export type Rotation = z.infer<typeof rotationSchema>;
