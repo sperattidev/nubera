@@ -55,6 +55,34 @@ services:
     mem_limit: 128m
     cpus: 0.25
 
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://${POSTGRES_USER:?definir en .env}:${POSTGRES_PASSWORD:?definir en .env}@postgres:5432/${POSTGRES_DB:?definir en .env}
+      MEDIA_DIR: /storage
+      TRUST_PROXY: "false"
+    ports:
+      - "127.0.0.1:${NUBERA_API_PORT:-53000}:3000"
+    volumes:
+      - ../../data/storage:/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 1.0
+
+  # El motor de audio no depende de la API para arrancar: si ésta cae, sigue al
+  # aire con la biblioteca local de emergencia.
   liquidsoap:
     image: savonet/liquidsoap:v2.4.x-latest
     restart: unless-stopped
@@ -63,9 +91,13 @@ services:
       ICECAST_HOST: icecast
       ICECAST_PORT: "8000"
       ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD:?definir en .env}
+      NUBERA_API_URL: http://api:3000
+      NUBERA_AGENT_TOKEN: ${NUBERA_AGENT_TOKEN:-}
+      NUBERA_STORAGE_DIR: /storage
     volumes:
       - ../liquidsoap/radio.liq:/etc/liquidsoap/radio.liq:ro
       - ../../data/media:/media:ro
+      - ../../data/storage:/storage:ro
     depends_on:
       icecast:
         condition: service_healthy
