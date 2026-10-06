@@ -14,9 +14,11 @@
     "@fastify/cookie": "^11.1.2",
     "@fastify/multipart": "^10.1.2",
     "@fastify/rate-limit": "^11.2.0",
+    "@nubera/core": "workspace:^",
     "@nubera/db": "workspace:^",
     "fastify": "^5.12.5",
     "fastify-plugin": "^6.0.0",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   }
 }
