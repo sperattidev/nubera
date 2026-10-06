@@ -16,6 +16,7 @@ Plataforma web de automatización y gestión para radios FM/AM y digitales. Un �
 ```
 apps/
   api/          API HTTP (Fastify + TypeScript)
+  web/          Panel web (Next.js, React, Tailwind CSS)
 packages/
   ai/           Interfaces de proveedores de IA e implementaciones
   core/         Motor de rotación, grilla horaria y tandas publicitarias (lógica pura)
@@ -25,7 +26,7 @@ infra/
   liquidsoap/   Script del motor de audio
 ```
 
-Se agregarán `web`, `agent`, `listener`, `db` y `core` a medida que avance el desarrollo.
+Se agregarán `agent` y `listener` a medida que avance el desarrollo.
 
 ## Requisitos
 
@@ -43,6 +44,30 @@ pnpm test
 cp .env.example .env   # completar valores
 docker compose --env-file .env -f infra/docker/compose.dev.yml up -d
 ```
+
+## Panel web
+
+Aplicación Next.js (App Router) con Tailwind CSS y componentes accesibles basados en Radix. Tema oscuro y claro, español rioplatense y diseño adaptable a celular.
+
+| Pantalla | Qué muestra |
+|---|---|
+| **Aire** | Qué suena ahora con cronómetro, qué viene, lo último emitido, estado del motor de audio y bloque vigente. Se actualiza cada 3 segundos. |
+| **Biblioteca** | Búsqueda, filtro por categoría, escucha en el navegador, subida de varios archivos con progreso, edición y borrado. |
+| **Historial** | Lo que salió al aire en el día, ayer, 7 o 30 días, con totales por categoría. |
+
+Cada usuario ve solo lo que su rol permite (la API es la que decide; el panel oculta las acciones que no corresponden).
+
+```bash
+# En contenedor (recomendado): API + panel en http://127.0.0.1:3001
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build web
+
+# Con Node, para desarrollar el panel (la API debe estar en API_URL)
+API_URL=http://127.0.0.1:53000 pnpm --filter @nubera/web dev   # http://127.0.0.1:3001
+```
+
+- El navegador solo habla con el panel: las llamadas a `/api/*` se reenvían a la API (`API_URL`, interna). No hace falta CORS y la cookie de sesión es de mismo origen.
+- Detrás de un proxy propio (Caddy, Cloudflare) definir `NUBERA_TRUST_FORWARDED=true` en el panel y `TRUST_PROXY=true` en la API, para que el límite de intentos de login use la IP real del cliente.
+- Para verlo desde otra máquina sin exponer el puerto: `ssh -L 3001:127.0.0.1:3001 <servidor>`.
 
 ## Streaming de desarrollo
 
@@ -76,9 +101,13 @@ Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con
 | GET | `/auth/me` | sesión | Usuario actual |
 | POST | `/auth/password` | sesión | Cambia la contraseña y cierra las demás sesiones |
 | GET, POST | `/users` | `users:manage` | Lista y crea usuarios del propio cliente |
-| GET | `/stations/:stationId/assets` | `assets:read` | Lista audios (`category`, `limit`, `offset`) |
+| GET | `/stations` | sesión | Emisoras del cliente |
+| GET | `/stations/:stationId/on-air` | `plays:read` | Estado del aire: suena ahora, lo que viene, lo anterior y el motor |
+| GET | `/stations/:stationId/assets` | `assets:read` | Lista audios (`q`, `category`, `limit`, `offset`; devuelve `total`) |
 | GET | `/stations/:stationId/assets/:assetId` | `assets:read` | Detalle de un audio |
+| GET | `/stations/:stationId/assets/:assetId/audio` | `assets:read` | Escucha el archivo (admite `Range`) |
 | POST | `/stations/:stationId/assets` | `assets:write` | Sube un audio (`multipart/form-data`) |
+| PATCH, DELETE | `/stations/:stationId/assets/:assetId` | `assets:write` | Edita título, artista y categoría; borra el audio |
 | GET | `/stations/:stationId/schedule` | `schedule:read` | Bloques de la grilla semanal |
 | POST, PUT, DELETE | `/stations/:stationId/schedule[/:blockId]` | `schedule:write` | Crea, edita y borra bloques |
 | GET | `/stations/:stationId/schedule/now` | `schedule:read` | Bloque vigente (`at` opcional) |
