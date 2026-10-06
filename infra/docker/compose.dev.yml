@@ -38,6 +38,40 @@ services:
     mem_limit: 384m
     cpus: 0.5
 
+  icecast:
+    build: ./icecast
+    restart: unless-stopped
+    environment:
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD:?definir en .env}
+      ICECAST_RELAY_PASSWORD: ${ICECAST_RELAY_PASSWORD:?definir en .env}
+      ICECAST_ADMIN_PASSWORD: ${ICECAST_ADMIN_PASSWORD:?definir en .env}
+    ports:
+      - "127.0.0.1:${NUBERA_ICECAST_PORT:-58000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/status-json.xsl >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    cpus: 0.25
+
+  liquidsoap:
+    image: savonet/liquidsoap:v2.4.x-latest
+    restart: unless-stopped
+    command: ["/etc/liquidsoap/radio.liq"]
+    environment:
+      ICECAST_HOST: icecast
+      ICECAST_PORT: "8000"
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD:?definir en .env}
+    volumes:
+      - ../liquidsoap/radio.liq:/etc/liquidsoap/radio.liq:ro
+      - ../../data/media:/media:ro
+    depends_on:
+      icecast:
+        condition: service_healthy
+    mem_limit: 512m
+    cpus: 1.0
+
 volumes:
   postgres-data:
   redis-data:
