@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Sistema de diseño de Nubera. Colores como variables: el modo oscuro es el
+   principal (consola de radio); el claro redefine los mismos nombres.
+   --------------------------------------------------------------------------- */
+:root {
+  --background: #f4f5fa;
+  --foreground: #0f1320;
+  --card: #ffffff;
+  --card-foreground: #0f1320;
+  --muted: #eceef6;
+  --muted-foreground: #596177;
+  --border: #dde1ec;
+  --input: #cfd5e3;
+  --ring: #5b5bf0;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --accent: #e8eafd;
+  --accent-foreground: #312e81;
+  --destructive: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+  --onair: #e11d48;
+  --sidebar: #ffffff;
+
+  --cat-music: #5b5bf0;
+  --cat-jingle: #d97706;
+  --cat-institutional: #0d9488;
+  --cat-ad: #db2777;
+  --cat-sweeper: #0891b2;
+  --cat-other: #64748b;
+
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: #070a11;
+  --foreground: #e9ecf5;
+  --card: #0e121c;
+  --card-foreground: #e9ecf5;
+  --muted: #141926;
+  --muted-foreground: #8a93a9;
+  --border: #1c2232;
+  --input: #272f45;
+  --ring: #8187ff;
+  --primary: #7c83ff;
+  --primary-foreground: #0a0c16;
+  --accent: #171c30;
+  --accent-foreground: #c7caff;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --onair: #fb3b64;
+  --sidebar: #0a0e17;
+
+  --cat-music: #8f95ff;
+  --cat-jingle: #fbbf24;
+  --cat-institutional: #2dd4bf;
+  --cat-ad: #f472b6;
+  --cat-sweeper: #22d3ee;
+  --cat-other: #94a3b8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-onair: var(--onair);
+  --color-sidebar: var(--sidebar);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: light dark;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--background);
+    background-image: radial-gradient(
+      1100px 480px at 50% -12%,
+      color-mix(in oklab, var(--primary) 13%, transparent),
+      transparent
+    );
+    background-repeat: no-repeat;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+}
+
+/* ---- Animaciones ---------------------------------------------------------- */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.2);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--onair) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.overlay[data-state="open"] {
+  animation: fade-in 0.15s ease-out;
+}
+.overlay[data-state="closed"] {
+  animation: fade-out 0.12s ease-in;
+}
+.popover[data-state="open"] {
+  animation: pop-in 0.14s ease-out;
+}
+.popover[data-state="closed"] {
+  animation: pop-out 0.1s ease-in;
+}
+.sheet[data-state="open"] {
+  animation: slide-in-left 0.2s ease-out;
+}
+
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq 1s ease-in-out infinite;
+}
+.onair-dot {
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in oklab, var(--muted) 70%, var(--foreground) 6%) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar,
+  .onair-dot,
+  .skeleton,
+  .overlay,
+  .popover,
+  .sheet {
+    animation: none !important;
+  }
+}
+
+/* Barra de desplazamiento discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--input) transparent;
+}
