@@ -12,6 +12,10 @@ export interface PlayRecord {
   artist: string | null;
   category: string;
   at: Date;
+  /** Solo en avisos publicitarios. */
+  campaignId?: string | null;
+  advertiserId?: string | null;
+  industry?: string | null;
 }
 
 interface Context {

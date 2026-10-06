@@ -29,6 +29,38 @@ export function localTime(date: Date, timeZone: string): { isoDay: number; minut
   };
 }
 
+/** Fecha local "AAAA-MM-DD" en la zona horaria indicada. */
+export function localDate(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** Fecha y hora local "AAAA-MM-DD HH:mm:ss" en la zona horaria indicada. */
+export function formatLocal(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const value = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")} ${value("hour")}:${value("minute")}:${value("second")}`;
+}
+
+/** Instante en que empezó el día local de `date` (zonas sin salto horario durante el día). */
+export function startOfLocalDay(date: Date, timeZone: string): Date {
+  const { minute } = localTime(date, timeZone);
+  return new Date(date.getTime() - minute * 60_000 - date.getUTCSeconds() * 1000 - date.getUTCMilliseconds());
+}
+
 /**
  * Bloque vigente en un instante. Si hay superposición gana el que empezó más
  * tarde (el más específico); ante un empate, el de menor id, para ser determinista.
