@@ -7,11 +7,11 @@ import {
   assets,
   desc,
   eq,
-  stations,
   type Database,
 } from "@nubera/db";
 import { HttpError } from "../errors.js";
 import type { MediaStorage } from "../storage.js";
+import { requireStation } from "./helpers.js";
 
 // El tipo MIME se deriva de la extensión validada, no del valor que envía el cliente.
 const MIME_BY_EXTENSION = new Map([
@@ -44,22 +44,10 @@ interface Options {
 }
 
 export const assetRoutes: FastifyPluginAsync<Options> = async (app, { db, storage }) => {
-  // Una emisora de otro cliente se informa como inexistente (no revela su existencia).
-  async function requireStation(stationId: string, tenantId: string) {
-    const [station] = await db
-      .select({ id: stations.id })
-      .from(stations)
-      .where(and(eq(stations.id, stationId), eq(stations.tenantId, tenantId)))
-      .limit(1);
-    if (!station) {
-      throw new HttpError(404, "Emisora no encontrada");
-    }
-  }
-
   app.get("/stations/:stationId/assets", { preHandler: app.authorize("assets:read") }, async (request) => {
     const { stationId } = stationParams.parse(request.params);
     const { category, limit, offset } = listQuery.parse(request.query);
-    await requireStation(stationId, request.user!.tenantId);
+    await requireStation(db, stationId, request.user!.tenantId);
 
     const filter = category
       ? and(eq(assets.stationId, stationId), eq(assets.category, category))
@@ -76,7 +64,7 @@ export const assetRoutes: FastifyPluginAsync<Options> = async (app, { db, storag
 
   app.get("/stations/:stationId/assets/:assetId", { preHandler: app.authorize("assets:read") }, async (request) => {
     const { stationId, assetId } = assetParams.parse(request.params);
-    await requireStation(stationId, request.user!.tenantId);
+    await requireStation(db, stationId, request.user!.tenantId);
     const [asset] = await db
       .select()
       .from(assets)
@@ -94,7 +82,7 @@ export const assetRoutes: FastifyPluginAsync<Options> = async (app, { db, storag
     if (!request.isMultipart()) {
       throw new HttpError(415, "Se esperaba multipart/form-data");
     }
-    await requireStation(stationId, request.user!.tenantId);
+    await requireStation(db, stationId, request.user!.tenantId);
 
     const fields: Record<string, string> = {};
     let stored: Awaited<ReturnType<MediaStorage["save"]>> | undefined;

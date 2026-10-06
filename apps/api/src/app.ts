@@ -7,7 +7,10 @@ import { authPlugin } from "./auth/plugin.js";
 import { DEFAULT_SESSION_TTL_SECONDS } from "./auth/session.js";
 import { HttpError } from "./errors.js";
 import { assetRoutes } from "./routes/assets.js";
+import { agentRoutes } from "./routes/agents.js";
 import { authRoutes } from "./routes/auth.js";
+import { playoutRoutes } from "./routes/playout.js";
+import { scheduleRoutes } from "./routes/schedule.js";
 import { userRoutes } from "./routes/users.js";
 import { EmptyFileError, FileTooLargeError, type MediaStorage } from "./storage.js";
 
@@ -23,6 +26,9 @@ export interface AppDependencies {
   loginRateLimitMax?: number;
   /** Confiar en X-Forwarded-For (solo detrás de un proxy propio). */
   trustProxy?: boolean;
+  /** Reloj y azar inyectables, para tests deterministas. */
+  now?: () => Date;
+  random?: () => number;
 }
 
 export function buildApp({
@@ -33,6 +39,8 @@ export function buildApp({
   sessionTtlSeconds = DEFAULT_SESSION_TTL_SECONDS,
   loginRateLimitMax = 5,
   trustProxy = false,
+  now = () => new Date(),
+  random,
 }: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: process.env.NODE_ENV !== "test", trustProxy });
 
@@ -68,6 +76,9 @@ export function buildApp({
   app.register(authRoutes, { db, sessionTtlSeconds, secureCookies, loginRateLimitMax });
   app.register(userRoutes, { db });
   app.register(assetRoutes, { db, storage });
+  app.register(scheduleRoutes, { db, now });
+  app.register(agentRoutes, { db });
+  app.register(playoutRoutes, { db, now, random });
 
   return app;
 }

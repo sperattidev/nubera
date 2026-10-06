@@ -35,6 +35,9 @@ importers:
       '@fastify/rate-limit':
         specifier: ^11.2.0
         version: 11.2.0
+      '@nubera/core':
+        specifier: workspace:^
+        version: link:../../packages/core
       '@nubera/db':
         specifier: workspace:^
         version: link:../../packages/db
@@ -44,14 +47,26 @@ importers:
       fastify-plugin:
         specifier: ^6.0.0
         version: 6.0.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       zod:
         specifier: ^4.6.5
         version: 4.6.5
 
   packages/ai: {}
 
+  packages/core:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   packages/db:
     dependencies:
+      '@nubera/core':
+        specifier: workspace:^
+        version: link:../core
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(@electric-sql/pglite@0.5.8)(@types/pg@8.23.1)(pg@8.23.1)
