@@ -71,7 +71,7 @@ export async function createHarness(overrides: Partial<AppDependencies> = {}) {
     await rm(dir, { recursive: true, force: true });
   }
 
-  return { app, db, reset, close: close_ };
+  return { app, db, dir, reset, close: close_ };
 }
 
 /** Inicia sesión y devuelve el valor para el header Cookie. */
