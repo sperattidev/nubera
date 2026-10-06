@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   index,
   integer,
   pgEnum,
@@ -57,12 +58,31 @@ export const users = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
+    /** Siempre en minúsculas; un email identifica a una sola cuenta. */
     email: text("email").notNull(),
     name: text("name").notNull(),
     role: userRole("role").notNull(),
+    /** Hash scrypt con sal y parámetros (ver apps/api/src/auth/password.ts). */
+    passwordHash: text("password_hash").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("users_tenant_email_idx").on(t.tenantId, t.email)],
+  (t) => [uniqueIndex("users_email_idx").on(t.email)],
+);
+
+/** Sesiones del panel. Se guarda el hash del token, nunca el token. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
 /** Archivo de audio de la biblioteca de una emisora. */
@@ -93,3 +113,4 @@ export type Tenant = typeof tenants.$inferSelect;
 export type Station = typeof stations.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
