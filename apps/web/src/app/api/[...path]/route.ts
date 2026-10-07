@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { clientIp } from "@/lib/client-ip";
 import { API_URL } from "@/lib/server";
 
 /**
@@ -38,9 +39,9 @@ async function handle(request: NextRequest, { params }: Context): Promise<Respon
   }
   // Solo se confía en la IP del cliente si hay un proxy propio delante del panel.
   if (process.env.NUBERA_TRUST_FORWARDED === "true") {
-    const forwarded = request.headers.get("x-forwarded-for");
-    if (forwarded) {
-      headers.set("x-forwarded-for", forwarded);
+    const ip = clientIp(request.headers);
+    if (ip) {
+      headers.set("x-forwarded-for", ip);
     }
   }
 
