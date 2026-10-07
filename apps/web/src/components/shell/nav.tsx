@@ -1,7 +1,7 @@
 "use client";
 
 import type { Permission } from "@nubera/core";
-import { CalendarClock, History, Library, Megaphone, Radio, type LucideIcon } from "lucide-react";
+import { CalendarClock, History, Library, Megaphone, Radio, Settings, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/session";
@@ -11,7 +11,8 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  permission: Permission;
+  /** Sin permiso, el ítem lo ve cualquier usuario con sesión (p. ej. Ajustes: todos tienen "Mi cuenta"). */
+  permission?: Permission;
 }
 
 const ITEMS: NavItem[] = [
@@ -20,6 +21,7 @@ const ITEMS: NavItem[] = [
   { href: "/biblioteca", label: "Biblioteca", icon: Library, permission: "assets:read" },
   { href: "/publicidad", label: "Publicidad", icon: Megaphone, permission: "ads:read" },
   { href: "/historial", label: "Historial", icon: History, permission: "plays:read" },
+  { href: "/ajustes", label: "Ajustes", icon: Settings },
 ];
 
 export function Nav({ onNavigate }: { onNavigate?: () => void }) {
@@ -28,7 +30,7 @@ export function Nav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <nav aria-label="Principal" className="grid gap-1">
-      {ITEMS.filter((item) => allowed(item.permission)).map(({ href, label, icon: Icon }) => {
+      {ITEMS.filter((item) => !item.permission || allowed(item.permission)).map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
