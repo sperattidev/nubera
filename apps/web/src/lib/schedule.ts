@@ -43,7 +43,12 @@ export interface Placed {
    * Los que se superponen se apilan: el que empieza más tarde va encima.
    */
   depth: number;
+  /** Otro bloque lo tapa justo donde va su título; hay que mostrarlo de otra forma. */
+  coveredTop: boolean;
 }
+
+/** Minutos desde el inicio de un bloque donde se ubica su título. Si otro lo tapa ahí, no se lee. */
+const TITLE_ZONE_MINUTES = 45;
 
 /**
  * Ubica los bloques de un día en el orden en que se dibujan (el último queda
@@ -61,7 +66,55 @@ export function layoutDay(blocks: readonly ScheduleBlock[], isoDay: number): Pla
   return items.map((item, index) => ({
     ...item,
     depth: items.slice(0, index).filter((below) => below.end > item.start).length,
+    coveredTop: items.slice(index + 1).some((above) => above.start <= item.start + TITLE_ZONE_MINUTES && above.start < item.end),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Mover y redimensionar con el mouse o el teclado
+// ---------------------------------------------------------------------------
+
+export type DragMode = "move" | "resize-start" | "resize-end";
+
+/** Granularidad al arrastrar (minutos) y duración mínima de un bloque. */
+export const DRAG_SNAP_MINUTES = 15;
+export const MIN_BLOCK_MINUTES = 30;
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+/**
+ * Nuevo horario de un bloque tras arrastrarlo `deltaMinutes`. El desplazamiento se
+ * redondea a la granularidad; el bloque nunca sale del día ni queda más corto que el mínimo.
+ * Al mover se conserva la duración.
+ */
+export function applyDrag(
+  mode: DragMode,
+  origin: { start: number; end: number },
+  deltaMinutes: number,
+): { start: number; end: number } {
+  const delta = Math.round(deltaMinutes / DRAG_SNAP_MINUTES) * DRAG_SNAP_MINUTES;
+  switch (mode) {
+    case "move": {
+      const duration = origin.end - origin.start;
+      const start = clamp(origin.start + delta, 0, MINUTES_PER_DAY - duration);
+      return { start, end: start + duration };
+    }
+    case "resize-start":
+      return { start: clamp(origin.start + delta, 0, origin.end - MIN_BLOCK_MINUTES), end: origin.end };
+    case "resize-end":
+      return { start: origin.start, end: clamp(origin.end + delta, origin.start + MIN_BLOCK_MINUTES, MINUTES_PER_DAY) };
+  }
+}
+
+/** Ajuste con teclado: ↑/↓ mueve el bloque un paso; con `resize`, cambia solo su final. */
+export function nudge(origin: { start: number; end: number }, direction: "up" | "down", resize: boolean) {
+  const delta = direction === "up" ? -DRAG_SNAP_MINUTES : DRAG_SNAP_MINUTES;
+  return applyDrag(resize ? "resize-end" : "move", origin, delta);
+}
+
+/** Cuerpo para la API (PUT) con otro horario; el resto del bloque no cambia. */
+export function payloadWithTimes(block: ScheduleBlock, start: number, end: number) {
+  return formToPayload({ ...blockToForm(block), start: formatClock(start), end: formatClock(end) });
 }
 
 export interface Gap {

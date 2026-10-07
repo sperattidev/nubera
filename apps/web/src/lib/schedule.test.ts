@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyDrag,
   blockToForm,
   coverage,
   describeDays,
@@ -8,7 +9,9 @@ import {
   formToPayload,
   layoutDay,
   newForm,
+  nudge,
   overlapsOf,
+  payloadWithTimes,
   TIME_OPTIONS,
   type BlockForm,
   type ScheduleBlock,
@@ -118,6 +121,102 @@ describe("layoutDay", () => {
       1,
     );
     expect(placed.map((p) => p.block.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("layoutDay: bloques tapados", () => {
+  const covered = (blocks: ScheduleBlock[]) => Object.fromEntries(layoutDay(blocks, 1).map((p) => [p.block.id, p.coveredTop]));
+
+  it("el que empieza a la vez que otro más corto queda tapado donde va su título", () => {
+    expect(
+      covered([
+        block({ id: "tarde", start: "12:00", end: "20:00" }),
+        block({ id: "noticiero", start: "12:00", end: "13:30" }),
+      ]),
+    ).toEqual({ tarde: true, noticiero: false });
+  });
+
+  it("también si el otro empieza un poco después, dentro de la zona del título", () => {
+    expect(
+      covered([block({ id: "a", start: "10:00", end: "14:00" }), block({ id: "b", start: "10:30", end: "11:00" })]),
+    ).toEqual({ a: true, b: false });
+  });
+
+  it("no cuenta si el de arriba empieza mucho después", () => {
+    expect(
+      covered([
+        block({ id: "general", start: "00:00", end: "24:00" }),
+        block({ id: "mañana", start: "06:00", end: "12:00" }),
+      ]),
+    ).toEqual({ general: false, mañana: false });
+  });
+
+  it("los bloques que no se superponen no están tapados", () => {
+    expect(
+      covered([block({ id: "a", start: "06:00", end: "10:00" }), block({ id: "b", start: "10:00", end: "12:00" })]),
+    ).toEqual({ a: false, b: false });
+  });
+});
+
+describe("applyDrag", () => {
+  const origin = { start: 6 * 60, end: 10 * 60 };
+
+  it("mover conserva la duración y redondea a 15 minutos", () => {
+    expect(applyDrag("move", origin, 60)).toEqual({ start: 420, end: 660 });
+    expect(applyDrag("move", origin, 22)).toEqual({ start: 375, end: 615 });
+    expect(applyDrag("move", origin, -67)).toEqual({ start: 300, end: 540 });
+    expect(applyDrag("move", origin, 0)).toEqual(origin);
+  });
+
+  it("mover no saca el bloque del día", () => {
+    expect(applyDrag("move", origin, -1000)).toEqual({ start: 0, end: 240 });
+    expect(applyDrag("move", origin, 5000)).toEqual({ start: 1200, end: 1440 });
+  });
+
+  it("redimensionar el final cambia solo el final, con un mínimo de 30 minutos", () => {
+    expect(applyDrag("resize-end", origin, 120)).toEqual({ start: 360, end: 720 });
+    expect(applyDrag("resize-end", origin, -1000)).toEqual({ start: 360, end: 390 });
+    expect(applyDrag("resize-end", origin, 5000)).toEqual({ start: 360, end: 1440 });
+  });
+
+  it("redimensionar el inicio cambia solo el inicio, con un mínimo de 30 minutos", () => {
+    expect(applyDrag("resize-start", origin, -60)).toEqual({ start: 300, end: 600 });
+    expect(applyDrag("resize-start", origin, 5000)).toEqual({ start: 570, end: 600 });
+    expect(applyDrag("resize-start", origin, -5000)).toEqual({ start: 0, end: 600 });
+  });
+});
+
+describe("nudge (teclado)", () => {
+  const origin = { start: 6 * 60, end: 10 * 60 };
+
+  it("mueve de a 15 minutos, o cambia solo el final", () => {
+    expect(nudge(origin, "down", false)).toEqual({ start: 375, end: 615 });
+    expect(nudge(origin, "up", false)).toEqual({ start: 345, end: 585 });
+    expect(nudge(origin, "down", true)).toEqual({ start: 360, end: 615 });
+    expect(nudge(origin, "up", true)).toEqual({ start: 360, end: 585 });
+  });
+
+  it("respeta los límites del día y la duración mínima", () => {
+    expect(nudge({ start: 0, end: 120 }, "up", false)).toEqual({ start: 0, end: 120 });
+    expect(nudge({ start: 1320, end: 1440 }, "down", false)).toEqual({ start: 1320, end: 1440 });
+    expect(nudge({ start: 600, end: 630 }, "up", true)).toEqual({ start: 600, end: 630 });
+  });
+});
+
+describe("payloadWithTimes", () => {
+  it("cambia solo el horario y conserva el resto del bloque", () => {
+    const original = block({
+      rotation: {
+        pool: [{ category: "music", weight: 3 }],
+        insertions: [{ category: "jingle", everyTracks: 4 }],
+        artistSeparation: 2,
+        trackSeparationMinutes: 60,
+        ads: { everyTracks: 5, spotsPerBreak: 2 },
+      },
+    });
+    const payload = payloadWithTimes(original, 7 * 60 + 15, 11 * 60);
+    expect(payload).toMatchObject({ name: "Mañana", days: [1, 2, 3, 4, 5], start: "07:15", end: "11:00" });
+    expect(payload.rotation).toEqual(original.rotation);
   });
 });
 
