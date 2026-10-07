@@ -1,17 +1,18 @@
 "use client";
 
 import { formatClock, localTime } from "@nubera/core";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, CalendarX2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState, PageHeader } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { CATEGORY_COLOR, CATEGORY_LABEL } from "@/lib/categories";
 import { poolShares } from "@/lib/rotation-summary";
-import { coverage, DAYS, describeDays, dominantCategory, toMinutes, type ScheduleBlock } from "@/lib/schedule";
+import { coverage, DAYS, describeDays, dominantCategory, payloadWithTimes, toMinutes, type ScheduleBlock } from "@/lib/schedule";
 import { useSession } from "@/lib/session";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,36 @@ function ScheduleContent({ stationId, timeZone }: { stationId: string; timeZone:
   });
   const blocks = useMemo(() => query.data?.items ?? [], [query.data]);
   const stats = useMemo(() => coverage(blocks), [blocks]);
+
+  // Mover o redimensionar un bloque: la grilla se actualiza al instante y, si la API lo
+  // rechaza (permiso, horario inválido, conexión), vuelve a como estaba y se avisa.
+  const queryClient = useQueryClient();
+  const scheduleKey = ["schedule", stationId];
+  const changeTime = useMutation({
+    mutationFn: ({ block, start, end }: { block: ScheduleBlock; start: number; end: number }) =>
+      api<ScheduleBlock>(`/stations/${stationId}/schedule/${block.id}`, { method: "PUT", body: payloadWithTimes(block, start, end) }),
+    onMutate: async ({ block, start, end }) => {
+      await queryClient.cancelQueries({ queryKey: scheduleKey });
+      const previous = queryClient.getQueryData<{ items: ScheduleBlock[] }>(scheduleKey);
+      const clock = payloadWithTimes(block, start, end);
+      queryClient.setQueryData<{ items: ScheduleBlock[] }>(scheduleKey, (old) =>
+        old ? { items: old.items.map((item) => (item.id === block.id ? { ...item, start: clock.start, end: clock.end } : item)) } : old,
+      );
+      return { previous };
+    },
+    onError: (error, _vars, context) => {
+      queryClient.setQueryData(scheduleKey, context?.previous);
+      toast.error(errorMessage(error));
+    },
+    onSuccess: (_data, { block, start, end }) => {
+      const clock = payloadWithTimes(block, start, end);
+      toast.success(`${block.name}: ${clock.start} a ${clock.end}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: scheduleKey });
+      queryClient.invalidateQueries({ queryKey: ["on-air", stationId] });
+    },
+  });
 
   const today = now ? localTime(new Date(now), timeZone) : null;
   const startOfToday = today ? today.minute - (today.minute % 30) : 6 * 60;
@@ -103,6 +134,7 @@ function ScheduleContent({ stationId, timeZone }: { stationId: string; timeZone:
               canWrite={canWrite}
               onSelect={(block) => setEditor({ mode: "edit", block })}
               onCreate={(day, minute) => setEditor({ mode: "create", day, minute })}
+              onChangeTime={(block, start, end) => changeTime.mutate({ block, start, end })}
             />
           </div>
           <div className="md:hidden">
@@ -115,7 +147,12 @@ function ScheduleContent({ stationId, timeZone }: { stationId: string; timeZone:
             />
           </div>
           {stats.gaps.length > 0 && <Gaps gaps={stats.gaps} />}
-          {canWrite && <p className="hidden text-xs text-muted-foreground md:block">Hacé clic en un hueco de la grilla para crear un bloque, o en un bloque para editarlo.</p>}
+          {canWrite && (
+            <p className="hidden text-xs text-muted-foreground md:block">
+              Hacé clic en un hueco para crear un bloque, o en un bloque para editarlo. Arrastralo para cambiarlo de horario y tirá de sus bordes para ajustar la duración.
+              Con el teclado: Alt + ↑/↓ lo mueve y Alt + Mayús + ↑/↓ cambia su final. Esc cancela un arrastre.
+            </p>
+          )}
         </div>
       )}
 
