@@ -88,7 +88,7 @@ export function buildApp({
   app.register(assetRoutes, { db, storage });
   app.register(scheduleRoutes, { db, now });
   app.register(agentRoutes, { db });
-  app.register(playoutRoutes, { db, now, random });
+  app.register(playoutRoutes, { db, storage, now, random });
   app.register(adRoutes, { db });
   app.register(reportRoutes, { db, now });
   app.register(stationRoutes, { db, now });

@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 const FORWARDED_REQUEST_HEADERS = [
   "accept",
   "accept-language",
+  // Token del motor de audio del estudio (rutas /playout), que llega por la dirección pública.
+  "authorization",
   "content-length",
   "content-type",
   "cookie",
