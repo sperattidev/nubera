@@ -66,11 +66,12 @@ El instalador pide la dirección de la API, el token del motor (sin mostrarlo) y
 
 Para que los oyentes de internet escuchen lo mismo que sale por la antena, el motor del estudio envía su flujo al Icecast de la nube. Como el servidor no abre puertos, el envío viaja por un **enlace de Cloudflare Access**: el estudio abre una conexión saliente y entra con un *token de servicio*, así que solo ese estudio puede transmitir. Encima sigue la contraseña de origen de Icecast.
 
-**Una sola vez, en Cloudflare** (Zero Trust):
+**Una sola vez, en Cloudflare** (Zero Trust). El orden importa: primero se protege el nombre y recién después se publica la ruta, porque una ruta publicada sin aplicación de Access queda abierta a todo internet.
 
-1. **Ruta hacia Icecast.** En el túnel de Nubera, *Published application routes* → agregar: subdominio `source`, tu dominio, tipo **TCP**, URL `icecast:8000`.
-2. **Token de servicio.** *Access controls → Service credentials → Service Tokens* → crear uno con el nombre del estudio. Copiar el **Client ID** y el **Client Secret** (el secreto se muestra una sola vez).
-3. **Protegerlo.** *Access controls → Applications → Add an application → Self-hosted*: nombre `Nubera streaming`, hostname público `source.<tu dominio>`. Agregar una política con acción **Service Auth** que incluya ese token de servicio. Sin esta política, cualquiera podría conectarse al enlace.
+1. **Token de servicio.** *Access controls → Service credentials → Service Tokens → Create Service Token*: nombre del estudio y duración. Copiar el **Client ID** y el **Client Secret** (el secreto se muestra una sola vez; si se expone, se rota desde el mismo menú).
+2. **Aplicación de Access.** *Access controls → Applications → Create new application → Self-hosted and private*: nombre `Nubera streaming` y, en *Add public hostname*, el subdominio `source` con tu dominio. En *Access policies* → *Create new policy*: acción **Service Auth** y, en *Include*, **Service Token** con el token del paso anterior. No reutilizar políticas de otras aplicaciones.
+3. **Ruta hacia Icecast.** En el túnel de Nubera, *Published application routes* → agregar: subdominio `source`, tu dominio, tipo **TCP**, URL `icecast:8000`.
+4. **Verificar que quedó protegido:** `curl -I https://source.<tu dominio>/` tiene que responder `403`. Si responde `200`, la protección no está activa y cualquiera puede intentar conectarse (solo lo frenaría la contraseña de Icecast).
 
 **En el estudio:** al ejecutar `./install.sh` responder que sí al streaming y pegar el nombre del enlace, el Client ID, el Client Secret y la contraseña de origen de Icecast (`ICECAST_SOURCE_PASSWORD` del servidor). Para activarlo después, borrar el `.env` y volver a ejecutar el instalador.
 
