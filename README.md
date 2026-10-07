@@ -55,6 +55,7 @@ Aplicación Next.js (App Router) con Tailwind CSS y componentes accesibles basad
 | **Programación** | Grilla semanal con los bloques apilados según cuál manda, línea de la hora actual, cobertura de la semana y franjas sin programar. Se crean y editan bloques (días, horario, mezcla de categorías, intercalados, tandas y separaciones) con un resumen de las reglas. Los bloques se arrastran para cambiarlos de horario y se estiran desde los bordes (también con Alt + flechas, y Esc cancela); los que quedan tapados por otro muestran su nombre en una solapa lateral. En el celular se ve como agenda por día. |
 | **Biblioteca** | Búsqueda, filtro por categoría, escucha en el navegador, subida de varios archivos con progreso, edición y borrado. |
 | **Publicidad** | Campañas con su vigencia, estado y avance (se pausan con un interruptor), anunciantes con su rubro y el certificado de emisión de cada uno: totales, gráfico por día, detalle con hora local, descarga en CSV y PDF para imprimir. |
+| **Ajustes** | Mi cuenta (datos y cambio de contraseña) para todos; para el dueño además el equipo (alta con contraseña generada, roles, desactivar, restablecer contraseña), los datos de la emisora y la zona horaria, y los tokens del motor de audio (se muestran una sola vez, con estado de conexión). |
 | **Historial** | Lo que salió al aire en el día, ayer, 7 o 30 días, con totales por categoría. |
 
 Cada usuario ve solo lo que su rol permite (la API es la que decide; el panel oculta las acciones que no corresponden).
@@ -103,7 +104,10 @@ Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con
 | GET | `/auth/me` | sesión | Usuario actual |
 | POST | `/auth/password` | sesión | Cambia la contraseña y cierra las demás sesiones |
 | GET, POST | `/users` | `users:manage` | Lista y crea usuarios del propio cliente |
+| PATCH | `/users/:userId` | `users:manage` | Cambia nombre, rol o estado; al desactivar se cierran sus sesiones. No se puede uno mismo cambiar el rol ni desactivarse |
+| POST | `/users/:userId/password` | `users:manage` | Restablece la contraseña de otra persona y cierra sus sesiones |
 | GET | `/stations` | sesión | Emisoras del cliente |
+| PATCH | `/stations/:stationId` | `stations:manage` | Edita nombre y zona horaria |
 | GET | `/stations/:stationId/on-air` | `plays:read` | Estado del aire: suena ahora, lo que viene, lo anterior y el motor |
 | GET | `/stations/:stationId/assets` | `assets:read` | Lista audios (`q`, `category`, `limit`, `offset`; devuelve `total`) |
 | GET | `/stations/:stationId/assets/:assetId` | `assets:read` | Detalle de un audio |
