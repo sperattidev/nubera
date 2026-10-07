@@ -8,6 +8,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { useSession } from "@/lib/session";
 import { AccountTab } from "./account-tab";
 import { EngineTab } from "./engine-tab";
+import { PublicPlayerCard } from "./public-player-card";
 import { StationTab } from "./station-tab";
 import { TeamTab } from "./team-tab";
 
@@ -42,7 +43,12 @@ export function SettingsView() {
 
       {tab === "cuenta" && <AccountTab />}
       {tab === "equipo" && <TeamTab timeZone={station?.timezone ?? "UTC"} />}
-      {tab === "emisora" && station && <StationTab key={`${station.id}-${station.name}-${station.timezone}`} station={station} />}
+      {tab === "emisora" && station && (
+        <div className="grid gap-6">
+          <StationTab key={`${station.id}-${station.name}-${station.timezone}`} station={station} />
+          <PublicPlayerCard station={station} />
+        </div>
+      )}
       {tab === "motor" && station && <EngineTab station={station} />}
       {(tab === "emisora" || tab === "motor") && !station && (
         <Card>
