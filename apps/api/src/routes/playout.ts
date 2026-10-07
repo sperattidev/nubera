@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { and, desc, eq, gte, isNotNull, isNull, lt, plays, type Database } from "@nubera/db";
+import { and, assets, desc, eq, gte, isNotNull, isNull, lt, plays, type Database } from "@nubera/db";
 import { HttpError } from "../errors.js";
 import { pickForStation } from "../playout/service.js";
+import type { MediaStorage } from "../storage.js";
 import { requireStation } from "./helpers.js";
 
 const playParams = z.object({ playId: z.string().uuid() });
@@ -15,17 +16,40 @@ const historyQuery = z.object({
 
 interface Options {
   db: Database;
+  storage: MediaStorage;
   now: () => Date;
   random?: () => number;
 }
 
-export const playoutRoutes: FastifyPluginAsync<Options> = async (app, { db, now, random }) => {
+export const playoutRoutes: FastifyPluginAsync<Options> = async (app, { db, storage, now, random }) => {
   // --- Motor de audio (token de agente) ---
 
   // Próximo audio a emitir; 204 si no hay nada programado (el motor usa su respaldo local).
   app.get("/playout/next", { preHandler: app.authorizeAgent() }, async (request, reply) => {
     const next = await pickForStation(db, request.agent!.stationId, now(), random);
     return next ? next : reply.code(204).send();
+  });
+
+  // El motor del estudio descarga el audio de una emisión para guardarlo en su caché local. Solo sirve
+  // audios de emisiones de la propia emisora del token.
+  app.get("/playout/plays/:playId/audio", { preHandler: app.authorizeAgent() }, async (request, reply) => {
+    const { playId } = playParams.parse(request.params);
+    const [row] = await db
+      .select({ storageKey: assets.storageKey, mimeType: assets.mimeType })
+      .from(plays)
+      .innerJoin(assets, eq(plays.assetId, assets.id))
+      .where(and(eq(plays.id, playId), eq(plays.stationId, request.agent!.stationId)))
+      .limit(1);
+    const file = row ? await storage.open(row.storageKey) : null;
+    if (!row || !file) {
+      throw new HttpError(404, "Audio no disponible");
+    }
+    return reply
+      .header("content-type", row.mimeType)
+      .header("content-length", file.size)
+      .header("cache-control", "private, max-age=3600")
+      .header("x-content-type-options", "nosniff")
+      .send(file.stream);
   });
 
   // El motor confirma que el audio empezó a sonar. Es idempotente.

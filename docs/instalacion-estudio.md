@@ -2,7 +2,7 @@
 
 Cómo dejar una radio funcionando con Nubera: qué hardware hace falta, cómo se conecta a la antena y al streaming, y cómo se instala el motor de audio.
 
-> **Estado.** Esta guía describe la instalación objetivo. Hoy el motor de audio (Liquidsoap) corre en contenedores de desarrollo y emite solo a Icecast. Los pasos marcados con **(pendiente)** todavía no existen en el repositorio y se indican al final, en [Qué falta construir](#qué-falta-construir).
+> **Estado.** El motor del estudio ya descarga la programación, guarda los audios en un caché local y emite por la placa de sonido. Está probado de punta a punta contra el servidor, pero **todavía no con una placa de sonido y una consola reales**. Lo que falta se indica al final, en [Qué falta construir](#qué-falta-construir).
 
 ## 1. Cómo se reparte el sistema
 
@@ -17,8 +17,8 @@ Cómo dejar una radio funcionando con Nubera: qué hardware hace falta, cómo se
 ```
 
 - **Antena (FM/AM):** el audio sale por la placa de sonido de la PC del estudio hacia la consola o el procesador de audio de la radio. Para el transmisor, Nubera es una fuente más, como un reproductor o un micrófono.
-- **Internet:** el mismo motor manda un único flujo a Icecast, que está en la nube. Así la conexión de subida del estudio solo lleva un flujo (unos 128 kbps) y no importa cuántos oyentes haya.
-- **Si se corta internet:** la antena sigue sonando con lo que el estudio ya tiene guardado; solo el streaming se interrumpe hasta que vuelva la conexión.
+- **Internet:** el mismo motor puede mandar un único flujo a Icecast, que está en la nube. Así la conexión de subida del estudio solo lleva un flujo (unos 128 kbps) y no importa cuántos oyentes haya. El enlace seguro entre el estudio y Icecast todavía no está resuelto (ver al final).
+- **Si se corta internet:** la programación se detiene, porque la decide la nube. La antena sigue sonando con la **música de emergencia** guardada en el estudio, y el motor retoma la programación solo cuando vuelve la conexión. Los audios ya descargados no se vuelven a bajar.
 
 ## 2. Hardware mínimo
 
@@ -37,19 +37,29 @@ Cómo dejar una radio funcionando con Nubera: qué hardware hace falta, cómo se
 2. Con el canal de Nubera bajo en la consola, subir el nivel de a poco y ajustarlo para que los picos lleguen cerca de 0 dB en el vúmetro, sin pasar a rojo.
 3. Si hay locutores en vivo, el micrófono se mezcla en la consola como siempre. Nubera no mezcla voces en vivo: se baja su canal en la consola cuando habla el locutor.
 
-## 4. Sistema operativo y servicios
+## 4. Instalar el motor
 
-1. Instalar Ubuntu Server 24.04 LTS en la PC del estudio, con actualizaciones automáticas de seguridad.
-2. Instalar Docker y el motor de audio. **(pendiente: instalador)**
-3. Ver y elegir la interfaz de audio con `aplay -l`. **(pendiente: salida a placa de sonido)**
-4. Configurar que el servicio arranque con el equipo y se reinicie solo si falla (`restart: unless-stopped`).
+1. Instalar Ubuntu Server 24.04 LTS en la PC del estudio, con actualizaciones automáticas de seguridad, y `alsa-utils` (`sudo apt install alsa-utils`).
+2. Instalar Docker siguiendo la [guía oficial](https://docs.docker.com/engine/install/ubuntu/) y dar acceso al usuario (`sudo usermod -aG docker $USER`, y volver a iniciar sesión).
+3. Traer el código y ejecutar el instalador guiado:
+
+```bash
+git clone https://github.com/sperattidev/nubera.git
+cd nubera/infra/studio
+./install.sh
+```
+
+El instalador pide la dirección de la API, el token del motor (sin mostrarlo) y la placa de sonido, escribe el `.env` (solo legible por tu usuario), crea la carpeta `emergencia` y arranca el motor. Para elegir la placa, `aplay -l` las lista; conviene el formato `plughw:1,0` (tarjeta 1, dispositivo 0), que convierte el formato de audio si hace falta.
+
+4. **Copiar música de emergencia** (MP3) a `infra/studio/emergencia`: suena si se corta internet o no hay nada programado. Sin ella, la radio queda con un tono.
+5. El motor se reinicia solo si falla y arranca con el equipo (`restart: unless-stopped`). Ver lo que hace: `docker compose logs -f`.
 
 ## 5. Conectar el estudio con el panel
 
 1. En el panel, entrar a **Ajustes → Motor de audio** y crear un token con un nombre que identifique al estudio.
 2. Copiar la línea `NUBERA_AGENT_TOKEN=…`: se muestra una sola vez.
-3. Guardarla en el archivo `.env` de la PC del estudio. Ese archivo no se comparte ni se sube a ningún repositorio.
-4. Reiniciar el motor. En unos segundos el panel muestra el estado **Conectado**.
+3. Pegar el token cuando lo pide `./install.sh` (o, a mano, guardarlo en el `.env` de la PC del estudio). Ese archivo no se comparte ni se sube a ningún repositorio.
+4. En unos segundos el panel muestra el estado **Conectado**.
 5. Si un token se filtra o la PC se reemplaza, revocarlo desde el panel y crear otro.
 
 ## 6. Dónde escuchan los oyentes en digital
@@ -63,8 +73,8 @@ El streaming sale de Icecast como un flujo MP3 de 128 kbps. Quien tenga la direc
 
 Requisitos para publicarlo:
 
-- La dirección del streaming debe ser **HTTPS** y tener dominio propio: los navegadores bloquean audio sin cifrar dentro de páginas seguras. Se resuelve con un proxy delante de Icecast (por ejemplo Caddy). **(pendiente)**
-- Hoy Nubera no tiene reproductor público ni página de oyentes: solo expone el flujo. **(pendiente)**
+- La dirección del streaming debe ser **HTTPS** y tener dominio propio: los navegadores bloquean audio sin cifrar dentro de páginas seguras. Ver *Publicación en internet* en el README.
+- Nubera ya incluye el reproductor público (`/radio/<slug>`) y su versión incrustable; ver *Reproductor público* en el README.
 - Ancho de banda del servidor: cada oyente consume 128 kbps. Cien oyentes simultáneos son unos 13 Mbps de salida.
 
 ## 7. Verificación antes de dar por terminada la instalación
@@ -74,15 +84,14 @@ Requisitos para publicarlo:
 - [ ] La consola recibe señal de la PC y el nivel es correcto.
 - [ ] La radio se escucha en un receptor de FM real, no solo en la consola.
 - [ ] El streaming se escucha desde un celular con datos móviles.
-- [ ] Se desconecta el cable de red unos minutos: la antena sigue sonando.
+- [ ] Se desconecta el cable de red unos minutos: la antena sigue sonando con la música de emergencia y, al volver la red, retoma la programación.
 - [ ] Se corta y se vuelve a dar energía a la PC: arranca sola y vuelve a **Conectado**.
 
 ## Qué falta construir
 
 | Pendiente | Por qué hace falta |
 |---|---|
-| Sincronizar al estudio los audios de la biblioteca | Hoy el motor lee los archivos desde una carpeta compartida con el servidor; en el estudio hay que descargarlos y guardarlos localmente. |
-| Salida del motor a la placa de sonido | Hoy solo emite a Icecast; falta la salida local que alimenta la consola. |
-| Instalador del estudio | Para dejar la PC lista (Docker, motor, `.env` y arranque automático) sin configurar a mano. |
-| HTTPS y dominio para el panel y el streaming | Necesario para exponer el sistema a internet. |
-| Reproductor público | Para que los oyentes tengan una página donde escuchar. |
+| Probar con una placa de sonido y una consola reales | Se probó contra el servidor con un dispositivo de audio nulo. Falta confirmar el nivel, el ruido y el arranque con una placa de verdad. |
+| Enlace seguro del streaming desde el estudio a la nube | El motor puede mandar su flujo a Icecast, pero la conexión de origen todavía no se expone de forma segura por internet. Hace falta decidirlo (por ejemplo una VPN o un túnel hacia el servidor de streaming). |
+| Instalar Docker desde el instalador | Hoy el instalador exige que Docker ya esté instalado. |
+| Limpieza del caché por espacio en disco | Hoy se borra por antigüedad (`NUBERA_CACHE_DAYS`), no por tamaño. |

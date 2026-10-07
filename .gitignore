@@ -17,3 +17,6 @@ dist/
 docs/private/
 .pnpm-store/
 *.tsbuildinfo
+
+# Música de emergencia del estudio (propia de cada radio)
+infra/studio/emergencia/

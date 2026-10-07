@@ -1,0 +1,42 @@
+# Motor de audio del estudio de una radio: descarga la programación de Nubera, la emite por la
+# placa de sonido (que alimenta la consola y el transmisor) y, si se configura, también a Icecast.
+#
+#   cd infra/studio && ./install.sh        (guiado)
+#   docker compose --env-file .env up -d   (a mano, con .env ya completo)
+#
+# Corre solo, sin base de datos ni panel: todo eso queda en la nube.
+name: nubera-studio
+
+services:
+  liquidsoap:
+    image: savonet/liquidsoap:v2.4.x-latest
+    restart: unless-stopped
+    command: ["/etc/liquidsoap/radio.liq"]
+    environment:
+      NUBERA_API_URL: ${NUBERA_API_URL:?definir en .env}
+      NUBERA_AGENT_TOKEN: ${NUBERA_AGENT_TOKEN:?definir en .env}
+      NUBERA_CACHE_DIR: /var/cache/liquidsoap/audio
+      NUBERA_CACHE_DAYS: ${NUBERA_CACHE_DAYS:-30}
+      NUBERA_ALSA_DEVICE: ${NUBERA_ALSA_DEVICE:-default}
+      # Streaming opcional: vacío = solo la placa de sonido.
+      ICECAST_HOST: ${ICECAST_HOST:-}
+      ICECAST_PORT: ${ICECAST_PORT:-8000}
+      ICECAST_MOUNT: ${ICECAST_MOUNT:-/live}
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD:-}
+      ICECAST_NAME: ${ICECAST_NAME:-Nubera}
+    volumes:
+      - ../liquidsoap/radio.liq:/etc/liquidsoap/radio.liq:ro
+      # Audios ya descargados: sobreviven a reinicios y no se vuelven a bajar.
+      - cache:/var/cache/liquidsoap
+      # Música de emergencia: suena si se corta internet o no hay nada programado.
+      - ./emergencia:/media/music:ro
+    # Acceso a la placa de sonido de la PC.
+    devices:
+      - /dev/snd:/dev/snd
+    group_add:
+      - "${AUDIO_GID:-29}"
+    mem_limit: 512m
+    cpus: 1.0
+
+volumes:
+  cache:
