@@ -22,14 +22,14 @@ function Frame({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
       {/* Barra lateral (escritorio) */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col gap-8 border-r border-border bg-sidebar px-5 py-6 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 print:hidden hidden w-64 flex-col gap-8 border-r border-border bg-sidebar px-5 py-6 lg:flex">
         <Logo />
         <Nav />
         <p className="mt-auto text-xs text-muted-foreground">Nubera · panel de radio</p>
       </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+      <div className="lg:pl-64 print:pl-0">
+        <header className="sticky top-0 z-20 print:hidden flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menú">
             <Menu />
           </Button>

@@ -18,7 +18,7 @@ export function AudioBar() {
     <div
       role="region"
       aria-label="Reproductor"
-      className="popover fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/90 backdrop-blur-xl lg:left-64"
+      className="popover print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/90 backdrop-blur-xl lg:left-64"
       data-state="open"
     >
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 lg:px-8">
