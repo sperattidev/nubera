@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ASSET_CATEGORIES } from "./categories.js";
+import { ASSET_CATEGORIES } from "./categories.ts";
 
 const category = z.enum(ASSET_CATEGORIES);
 

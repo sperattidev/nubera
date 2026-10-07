@@ -1,4 +1,4 @@
-import { ASSET_CATEGORIES, type Rotation } from "@nubera/core";
+import { ASSET_CATEGORIES, USER_ROLES, type Rotation } from "@nubera/core";
 import {
   bigint,
   boolean,
@@ -15,7 +15,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const userRoles = ["owner", "programmer", "announcer", "sales"] as const;
+export const userRoles = USER_ROLES;
 export const assetCategories = ASSET_CATEGORIES;
 
 export const userRole = pgEnum("user_role", userRoles);

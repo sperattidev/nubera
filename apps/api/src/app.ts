@@ -13,6 +13,7 @@ import { authRoutes } from "./routes/auth.js";
 import { playoutRoutes } from "./routes/playout.js";
 import { reportRoutes } from "./routes/reports.js";
 import { scheduleRoutes } from "./routes/schedule.js";
+import { stationRoutes } from "./routes/stations.js";
 import { userRoutes } from "./routes/users.js";
 import { EmptyFileError, FileTooLargeError, type MediaStorage } from "./storage.js";
 
@@ -83,6 +84,7 @@ export function buildApp({
   app.register(playoutRoutes, { db, now, random });
   app.register(adRoutes, { db });
   app.register(reportRoutes, { db, now });
+  app.register(stationRoutes, { db, now });
 
   return app;
 }

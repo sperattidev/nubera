@@ -1,4 +1,4 @@
-import type { Rotation } from "./rotation.js";
+import type { Rotation } from "./rotation.ts";
 
 /** Bloque de la grilla semanal. Los minutos cuentan desde la medianoche local. */
 export interface Block {

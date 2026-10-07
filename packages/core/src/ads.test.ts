@@ -9,7 +9,7 @@ import {
   type AdCampaign,
   type PlayRecord,
   type PoolAsset,
-} from "./index.js";
+} from "./index.ts";
 
 const TZ = "America/Argentina/Buenos_Aires";
 // Martes 2026-10-06, 12:00 en Buenos Aires.
