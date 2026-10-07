@@ -18,6 +18,8 @@ services:
       NUBERA_CACHE_DIR: /var/cache/liquidsoap/audio
       NUBERA_CACHE_DAYS: ${NUBERA_CACHE_DAYS:-30}
       NUBERA_ALSA_DEVICE: ${NUBERA_ALSA_DEVICE:-default}
+      # Retorno de la consola para el streaming durante un programa en vivo (opcional).
+      NUBERA_LIVE_INPUT_DEVICE: ${NUBERA_LIVE_INPUT_DEVICE:-}
       # Streaming opcional: vacío = solo la placa de sonido.
       ICECAST_HOST: ${ICECAST_HOST:-}
       ICECAST_PORT: ${ICECAST_PORT:-8000}
