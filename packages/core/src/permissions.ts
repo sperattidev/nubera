@@ -11,6 +11,7 @@ export const PERMISSIONS = [
   "ads:write",
   "agents:manage",
   "users:manage",
+  "stations:manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 

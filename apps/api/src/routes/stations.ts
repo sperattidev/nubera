@@ -22,6 +22,23 @@ import { requireStation } from "./helpers.js";
 
 const params = z.object({ stationId: z.string().uuid() });
 
+/** ¿Es una zona horaria que el sistema reconoce (p. ej. "America/Argentina/Buenos_Aires")? */
+function isTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const updateStationBody = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    timezone: z.string().trim().refine(isTimeZone, { message: "Zona horaria no reconocida" }).optional(),
+  })
+  .refine((body) => Object.values(body).some((value) => value !== undefined), { message: "No hay nada para modificar" });
+
 /** El motor se considera conectado si consultó a la API en este lapso. */
 const ENGINE_ONLINE_WINDOW_MS = 90_000;
 const RECENT_LIMIT = 10;
@@ -42,6 +59,20 @@ export const stationRoutes: FastifyPluginAsync<Options> = async (app, { db, now 
       .where(eq(stations.tenantId, request.user!.tenantId))
       .orderBy(asc(stations.name));
     return { items };
+  });
+
+  // Nombre y zona horaria. La zona define qué bloque de la grilla está vigente y cómo se
+  // cuentan los días, así que cambiarla modifica qué suena ahora.
+  app.patch("/stations/:stationId", { preHandler: app.authorize("stations:manage") }, async (request) => {
+    const { stationId } = params.parse(request.params);
+    const body = updateStationBody.parse(request.body);
+    await requireStation(db, stationId, request.user!.tenantId);
+    const [updated] = await db
+      .update(stations)
+      .set(body)
+      .where(eq(stations.id, stationId))
+      .returning({ id: stations.id, name: stations.name, slug: stations.slug, timezone: stations.timezone });
+    return updated;
   });
 
   // Estado del aire: qué suena, qué viene, qué sonó y si el motor está conectado.
