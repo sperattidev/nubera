@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { and, assets, desc, eq, gte, isNotNull, isNull, lt, plays, type Database } from "@nubera/db";
+import { findActiveBlock } from "@nubera/core";
+import { and, assets, desc, eq, gte, isNotNull, isNull, lt, plays, scheduleBlocks, stations, type Database } from "@nubera/db";
 import { HttpError } from "../errors.js";
 import { pickForStation } from "../playout/service.js";
 import type { MediaStorage } from "../storage.js";
@@ -28,6 +29,16 @@ export const playoutRoutes: FastifyPluginAsync<Options> = async (app, { db, stor
   app.get("/playout/next", { preHandler: app.authorizeAgent() }, async (request, reply) => {
     const next = await pickForStation(db, request.agent!.stationId, now(), random);
     return next ? next : reply.code(204).send();
+  });
+
+  // Modo de la emisora ahora. En un programa en vivo el motor silencia su salida y la consola se hace cargo.
+  // Consultarlo también sirve de señal de vida: el panel lo muestra como motor conectado.
+  app.get("/playout/mode", { preHandler: app.authorizeAgent() }, async (request) => {
+    const stationId = request.agent!.stationId;
+    const [station] = await db.select({ timezone: stations.timezone }).from(stations).where(eq(stations.id, stationId)).limit(1);
+    const blocks = station ? await db.select().from(scheduleBlocks).where(eq(scheduleBlocks.stationId, stationId)) : [];
+    const block = station ? findActiveBlock(blocks, now(), station.timezone) : null;
+    return block?.mode === "live" ? { mode: "live" as const, program: block.name } : { mode: "auto" as const, program: null };
   });
 
   // El motor del estudio descarga el audio de una emisión para guardarlo en su caché local. Solo sirve

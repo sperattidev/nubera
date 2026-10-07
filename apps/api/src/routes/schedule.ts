@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { findActiveBlock, formatClock, parseClock, rotationSchema } from "@nubera/core";
+import { BLOCK_MODES, findActiveBlock, formatClock, LIVE_ROTATION, parseClock, rotationSchema } from "@nubera/core";
 import { and, eq, scheduleBlocks, type ScheduleBlock, type Database } from "@nubera/db";
 import { HttpError } from "../errors.js";
 import { requireStation } from "./helpers.js";
@@ -23,12 +23,20 @@ const blockBody = z
       .transform((days) => [...new Set(days)].sort((a, b) => a - b)),
     start: clock,
     end: clock,
-    rotation: rotationSchema,
+    mode: z.enum(BLOCK_MODES).default("auto"),
+    /** Obligatoria en los bloques automáticos; un programa en vivo no la necesita. */
+    rotation: rotationSchema.optional(),
   })
   .refine((block) => block.end > block.start, {
     message: "El fin debe ser posterior al inicio (para cruzar la medianoche, usar dos bloques)",
     path: ["end"],
+  })
+  .refine((block) => block.mode === "live" || block.rotation !== undefined, {
+    message: "Un bloque automático necesita su rotación",
+    path: ["rotation"],
   });
+
+const rotationOf = (body: z.infer<typeof blockBody>) => (body.mode === "live" ? LIVE_ROTATION : body.rotation!);
 
 const nowQuery = z.object({ at: z.coerce.date().optional() });
 
@@ -36,6 +44,7 @@ function serialize(block: ScheduleBlock) {
   return {
     id: block.id,
     name: block.name,
+    mode: block.mode,
     days: block.days,
     start: formatClock(block.startMinute),
     end: formatClock(block.endMinute),
@@ -81,10 +90,11 @@ export const scheduleRoutes: FastifyPluginAsync<Options> = async (app, { db, now
       .values({
         stationId,
         name: body.name,
+        mode: body.mode,
         days: body.days,
         startMinute: body.start,
         endMinute: body.end,
-        rotation: body.rotation,
+        rotation: rotationOf(body),
       })
       .returning();
     return reply.code(201).send(serialize(created!));
@@ -98,10 +108,11 @@ export const scheduleRoutes: FastifyPluginAsync<Options> = async (app, { db, now
       .update(scheduleBlocks)
       .set({
         name: body.name,
+        mode: body.mode,
         days: body.days,
         startMinute: body.start,
         endMinute: body.end,
-        rotation: body.rotation,
+        rotation: rotationOf(body),
       })
       .where(and(eq(scheduleBlocks.id, blockId), eq(scheduleBlocks.stationId, stationId)))
       .returning();

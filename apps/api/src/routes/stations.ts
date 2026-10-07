@@ -131,6 +131,7 @@ export const stationRoutes: FastifyPluginAsync<Options> = async (app, { db, now 
         ? {
             id: block.id,
             name: block.name,
+            mode: block.mode,
             start: formatClock(block.startMinute),
             end: formatClock(block.endMinute),
             rotation: block.rotation,

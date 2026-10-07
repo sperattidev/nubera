@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { and, desc, eq, inArray, isNotNull, plays, stations, type Database } from "@nubera/db";
+import { findActiveBlock } from "@nubera/core";
+import { and, desc, eq, inArray, isNotNull, plays, scheduleBlocks, stations, type Database } from "@nubera/db";
 import { HttpError } from "../errors.js";
 
 const params = z.object({ slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80) });
@@ -17,6 +18,8 @@ export interface PublicStation {
   /** Dirección del flujo de audio; null si la plataforma todavía no la tiene configurada. */
   streamUrl: string | null;
   nowPlaying: { title: string; artist: string | null; startedAt: Date } | null;
+  /** Programa en vivo en este momento (su nombre), o null si suena la automatización. */
+  live: { program: string } | null;
   recent: { title: string; artist: string | null; startedAt: Date }[];
 }
 
@@ -42,7 +45,11 @@ export const publicRoutes: FastifyPluginAsync<Options> = async (app, { db, now, 
     let body = cache.get(slug);
     if (!body || body.expiresAt <= at.getTime()) {
       cache.delete(slug);
-      const [station] = await db.select({ id: stations.id, name: stations.name }).from(stations).where(eq(stations.slug, slug)).limit(1);
+      const [station] = await db
+        .select({ id: stations.id, name: stations.name, timezone: stations.timezone })
+        .from(stations)
+        .where(eq(stations.slug, slug))
+        .limit(1);
       if (!station) {
         throw new HttpError(404, "Emisora no encontrada");
       }
@@ -60,6 +67,10 @@ export const publicRoutes: FastifyPluginAsync<Options> = async (app, { db, now, 
         .orderBy(desc(plays.startedAt))
         .limit(RECENT_LIMIT + 1);
 
+      const blocks = await db.select().from(scheduleBlocks).where(eq(scheduleBlocks.stationId, station.id));
+      const block = findActiveBlock(blocks, at, station.timezone);
+      const program = block?.mode === "live" ? { program: block.name } : null;
+
       const live = latest?.startedAt && at.getTime() - latest.startedAt.getTime() <= STALE_AFTER_MS ? latest : null;
       // Durante un corte (aviso, separador) se muestra el nombre de la emisora, no el del aviso.
       const isListed = live ? (LISTED_CATEGORIES as readonly string[]).includes(live.category) : false;
@@ -73,7 +84,9 @@ export const publicRoutes: FastifyPluginAsync<Options> = async (app, { db, now, 
         name: station.name,
         slug,
         streamUrl,
-        nowPlaying,
+        // En un programa en vivo no hay tema que anunciar: se muestra el programa.
+        nowPlaying: program ? null : nowPlaying,
+        live: program,
         recent: earlier.map((play) => ({ title: play.title, artist: play.artist, startedAt: play.startedAt! })),
       };
       body = { expiresAt: at.getTime() + cacheSeconds * 1000, body: response };

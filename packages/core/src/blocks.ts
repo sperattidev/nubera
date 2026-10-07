@@ -1,5 +1,12 @@
 import type { Rotation } from "./rotation.ts";
 
+/**
+ * Cómo se llena un bloque: en "auto" la automatización elige los audios; en "live" es un programa
+* en vivo y la automatización no emite nada (el locutor y la consola se hacen cargo).
+ */
+export const BLOCK_MODES = ["auto", "live"] as const;
+export type BlockMode = (typeof BLOCK_MODES)[number];
+
 /** Bloque de la grilla semanal. Los minutos cuentan desde la medianoche local. */
 export interface Block {
   id: string;
@@ -9,6 +16,8 @@ export interface Block {
   /** Exclusivo; 1440 equivale a medianoche. */
   endMinute: number;
   rotation: Rotation;
+  /** Sin dato se entiende "auto". */
+  mode?: BlockMode;
 }
 
 const ISO_DAY: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };

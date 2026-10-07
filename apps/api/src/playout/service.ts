@@ -158,7 +158,8 @@ export async function pickForStation(
 
   const blocks: Block[] = await db.select().from(scheduleBlocks).where(eq(scheduleBlocks.stationId, stationId));
   const block = findActiveBlock(blocks, now, station.timezone);
-  if (!block) {
+  // Programa en vivo: lo hace el locutor, la automatización no emite nada.
+  if (!block || block.mode === "live") {
     return null;
   }
 

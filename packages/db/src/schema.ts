@@ -1,4 +1,4 @@
-import { ASSET_CATEGORIES, USER_ROLES, type Rotation } from "@nubera/core";
+import { ASSET_CATEGORIES, BLOCK_MODES, USER_ROLES, type Rotation } from "@nubera/core";
 import {
   bigint,
   boolean,
@@ -20,6 +20,7 @@ export const assetCategories = ASSET_CATEGORIES;
 
 export const userRole = pgEnum("user_role", userRoles);
 export const assetCategory = pgEnum("asset_category", assetCategories);
+export const blockMode = pgEnum("block_mode", BLOCK_MODES);
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -116,6 +117,8 @@ export const scheduleBlocks = pgTable(
       .notNull()
       .references(() => stations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** "live" = programa en vivo: la automatización no emite durante el bloque. */
+    mode: blockMode("mode").notNull().default("auto"),
     /** Días de aplicación, 1 = lunes ... 7 = domingo. */
     days: integer("days").array().notNull(),
     startMinute: integer("start_minute").notNull(),

@@ -38,3 +38,14 @@ export const rotationSchema = z.object({
 });
 
 export type Rotation = z.infer<typeof rotationSchema>;
+
+/**
+ * Rotación que se guarda en un programa en vivo. No se usa para elegir audios; existe para que todos los
+ * bloques tengan la misma forma y el resto del sistema no tenga que distinguirlos.
+ */
+export const LIVE_ROTATION: Rotation = {
+  pool: [{ category: "music", weight: 1 }],
+  insertions: [],
+  artistSeparation: 0,
+  trackSeparationMinutes: 0,
+};
