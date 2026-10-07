@@ -17,7 +17,7 @@ Cómo dejar una radio funcionando con Nubera: qué hardware hace falta, cómo se
 ```
 
 - **Antena (FM/AM):** el audio sale por la placa de sonido de la PC del estudio hacia la consola o el procesador de audio de la radio. Para el transmisor, Nubera es una fuente más, como un reproductor o un micrófono.
-- **Internet:** el mismo motor puede mandar un único flujo a Icecast, que está en la nube. Así la conexión de subida del estudio solo lleva un flujo (unos 128 kbps) y no importa cuántos oyentes haya. El enlace seguro entre el estudio y Icecast todavía no está resuelto (ver al final).
+- **Internet:** el mismo motor puede mandar un único flujo a Icecast, que está en la nube. Así la conexión de subida del estudio solo lleva un flujo (unos 128 kbps) y no importa cuántos oyentes haya. Ese envío va por un enlace seguro de Cloudflare Access (ver [Streaming a la nube](#streaming-a-la-nube)).
 - **Si se corta internet:** la programación se detiene, porque la decide la nube. La antena sigue sonando con la **música de emergencia** guardada en el estudio, y el motor retoma la programación solo cuando vuelve la conexión. Los audios ya descargados no se vuelven a bajar.
 
 ## 2. Hardware mínimo
@@ -61,6 +61,21 @@ El instalador pide la dirección de la API, el token del motor (sin mostrarlo) y
 3. Pegar el token cuando lo pide `./install.sh` (o, a mano, guardarlo en el `.env` de la PC del estudio). Ese archivo no se comparte ni se sube a ningún repositorio.
 4. En unos segundos el panel muestra el estado **Conectado**.
 5. Si un token se filtra o la PC se reemplaza, revocarlo desde el panel y crear otro.
+
+## Streaming a la nube
+
+Para que los oyentes de internet escuchen lo mismo que sale por la antena, el motor del estudio envía su flujo al Icecast de la nube. Como el servidor no abre puertos, el envío viaja por un **enlace de Cloudflare Access**: el estudio abre una conexión saliente y entra con un *token de servicio*, así que solo ese estudio puede transmitir. Encima sigue la contraseña de origen de Icecast.
+
+**Una sola vez, en Cloudflare** (Zero Trust). El orden importa: primero se protege el nombre y recién después se publica la ruta, porque una ruta publicada sin aplicación de Access queda abierta a todo internet.
+
+1. **Token de servicio.** *Access controls → Service credentials → Service Tokens → Create Service Token*: nombre del estudio y duración. Copiar el **Client ID** y el **Client Secret** (el secreto se muestra una sola vez; si se expone, se rota desde el mismo menú).
+2. **Aplicación de Access.** *Access controls → Applications → Create new application → Self-hosted and private*: nombre `Nubera streaming` y, en *Add public hostname*, el subdominio `source` con tu dominio. En *Access policies* → *Create new policy*: acción **Service Auth** y, en *Include*, **Service Token** con el token del paso anterior. No reutilizar políticas de otras aplicaciones.
+3. **Ruta hacia Icecast.** En el túnel de Nubera, *Published application routes* → agregar: subdominio `source`, tu dominio, tipo **TCP**, URL `icecast:8000`.
+4. **Verificar que quedó protegido:** `curl -I https://source.<tu dominio>/` tiene que responder `403`. Si responde `200`, la protección no está activa y cualquiera puede intentar conectarse (solo lo frenaría la contraseña de Icecast).
+
+**En el estudio:** al ejecutar `./install.sh` responder que sí al streaming y pegar el nombre del enlace, el Client ID, el Client Secret y la contraseña de origen de Icecast (`ICECAST_SOURCE_PASSWORD` del servidor). Para activarlo después, borrar el `.env` y volver a ejecutar el instalador.
+
+En el servidor el streaming sale por el punto de montaje `/live`, el mismo que lee el reproductor público. Si el servidor tiene además su propio motor de desarrollo emitiendo a `/live`, hay que apagarlo para que no compitan.
 
 ## 6. Dónde escuchan los oyentes en digital
 
@@ -113,6 +128,6 @@ Un programa en vivo se carga en la grilla como un bloque de tipo **Programa en v
 | Pendiente | Por qué hace falta |
 |---|---|
 | Probar con una placa de sonido y una consola reales | Se probó contra el servidor con un dispositivo de audio nulo. Falta confirmar el nivel, el ruido y el arranque con una placa de verdad. |
-| Enlace seguro del streaming desde el estudio a la nube | El motor puede mandar su flujo a Icecast, pero la conexión de origen todavía no se expone de forma segura por internet. Hace falta decidirlo (por ejemplo una VPN o un túnel hacia el servidor de streaming). |
+| Probar el enlace de streaming con un estudio real | Se probó con el estudio simulado en el servidor; falta verlo funcionar desde otra red y con cortes de internet reales. |
 | Instalar Docker desde el instalador | Hoy el instalador exige que Docker ya esté instalado. |
 | Limpieza del caché por espacio en disco | Hoy se borra por antigüedad (`NUBERA_CACHE_DAYS`), no por tamaño. |
