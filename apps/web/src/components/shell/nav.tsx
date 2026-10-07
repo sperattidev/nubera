@@ -1,7 +1,7 @@
 "use client";
 
 import type { Permission } from "@nubera/core";
-import { History, Library, Radio, type LucideIcon } from "lucide-react";
+import { CalendarClock, History, Library, Radio, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/session";
@@ -16,6 +16,7 @@ interface NavItem {
 
 const ITEMS: NavItem[] = [
   { href: "/aire", label: "Aire", icon: Radio, permission: "plays:read" },
+  { href: "/programacion", label: "Programación", icon: CalendarClock, permission: "schedule:read" },
   { href: "/biblioteca", label: "Biblioteca", icon: Library, permission: "assets:read" },
   { href: "/historial", label: "Historial", icon: History, permission: "plays:read" },
 ];

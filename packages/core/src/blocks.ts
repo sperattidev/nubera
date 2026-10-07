@@ -63,14 +63,15 @@ export function startOfLocalDay(date: Date, timeZone: string): Date {
 
 /**
  * Bloque vigente en un instante. Si hay superposición gana el que empezó más
- * tarde (el más específico); ante un empate, el de menor id, para ser determinista.
+ * tarde (el más específico); si empiezan a la vez, el más corto; y ante un empate
+ * total, el de menor id, para ser determinista.
  */
 export function findActiveBlock<T extends Block>(blocks: readonly T[], at: Date, timeZone: string): T | null {
   const { isoDay, minute } = localTime(at, timeZone);
   const active = blocks.filter(
     (block) => block.days.includes(isoDay) && block.startMinute <= minute && minute < block.endMinute,
   );
-  active.sort((a, b) => b.startMinute - a.startMinute || a.id.localeCompare(b.id));
+  active.sort((a, b) => b.startMinute - a.startMinute || a.endMinute - b.endMinute || a.id.localeCompare(b.id));
   return active[0] ?? null;
 }
 
