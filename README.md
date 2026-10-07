@@ -186,7 +186,7 @@ La dirección del flujo de audio se define con `NUBERA_PUBLIC_STREAM_URL` (ver `
 
 Hardware, conexión a la antena y al streaming, y puesta en marcha del motor de audio: [docs/instalacion-estudio.md](docs/instalacion-estudio.md).
 
-El motor del estudio (`infra/studio`) descarga la programación de la API con su token, guarda los audios en un caché local y emite por la placa de sonido (`NUBERA_ALSA_DEVICE`) y, opcionalmente, a Icecast. Se instala con `infra/studio/install.sh`. El mismo script (`infra/liquidsoap/radio.liq`) sirve en desarrollo, leyendo los audios de una carpeta compartida.
+El motor del estudio (`infra/studio`) descarga la programación de la API con su token, guarda los audios en un caché local y emite por la placa de sonido (`NUBERA_ALSA_DEVICE`) y, opcionalmente, a Icecast. Se instala con `infra/studio/install.sh`, que también puede configurar el envío seguro del streaming a la nube (Cloudflare Access). El mismo script (`infra/liquidsoap/radio.liq`) sirve en desarrollo, leyendo los audios de una carpeta compartida.
 
 **Programas en vivo:** un bloque de la grilla puede ser un programa en vivo. Durante ese horario la automatización no emite (la antena queda en manos del locutor y la consola), el panel y el reproductor público muestran el programa, y al terminar vuelve sola. Ver [docs/instalacion-estudio.md](docs/instalacion-estudio.md#programas-en-vivo).
 

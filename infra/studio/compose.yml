@@ -40,5 +40,21 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
+  # Enlace seguro hasta el Icecast de la nube, solo si se configura el streaming (perfil "streaming").
+  # Abre en esta PC un puerto local que Cloudflare conecta con el Icecast; entra con un token de
+  # servicio, así que solo este estudio puede usarlo. El motor transmite a este contenedor.
+  stream-link:
+    image: cloudflare/cloudflared:2026.10.0
+    profiles: ["streaming"]
+    restart: unless-stopped
+    command: ["access", "tcp"]
+    environment:
+      TUNNEL_SERVICE_HOSTNAME: ${STREAM_LINK_HOSTNAME:-}
+      TUNNEL_SERVICE_URL: 0.0.0.0:8000
+      TUNNEL_SERVICE_TOKEN_ID: ${STREAM_LINK_TOKEN_ID:-}
+      TUNNEL_SERVICE_TOKEN_SECRET: ${STREAM_LINK_TOKEN_SECRET:-}
+    mem_limit: 128m
+    cpus: 0.25
+
 volumes:
   cache:
