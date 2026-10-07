@@ -10,6 +10,7 @@ import { adRoutes } from "./routes/ads.js";
 import { agentRoutes } from "./routes/agents.js";
 import { assetRoutes } from "./routes/assets.js";
 import { authRoutes } from "./routes/auth.js";
+import { certificateLinkRoutes } from "./routes/certificate-links.js";
 import { playoutRoutes } from "./routes/playout.js";
 import { publicRoutes } from "./routes/public.js";
 import { reportRoutes } from "./routes/reports.js";
@@ -91,6 +92,7 @@ export function buildApp({
   app.register(playoutRoutes, { db, storage, now, random });
   app.register(adRoutes, { db });
   app.register(reportRoutes, { db, now });
+  app.register(certificateLinkRoutes, { db, now });
   app.register(stationRoutes, { db, now });
   app.register(publicRoutes, { db, now, streamUrl: publicStreamUrl, cacheSeconds: publicCacheSeconds });
 

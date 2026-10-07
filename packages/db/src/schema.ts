@@ -242,3 +242,31 @@ export type Advertiser = typeof advertisers.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type Play = typeof plays.$inferSelect;
 export type AgentToken = typeof agentTokens.$inferSelect;
+
+/**
+ * Enlace público a un certificado de emisión. Fija emisora y período, vence y se puede revocar.
+ * Solo se guarda el hash del token: el valor completo se muestra una única vez, al crearlo.
+ */
+export const certificateLinks = pgTable(
+  "certificate_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    advertiserId: uuid("advertiser_id")
+      .notNull()
+      .references(() => advertisers.id, { onDelete: "cascade" }),
+    stationId: uuid("station_id")
+      .notNull()
+      .references(() => stations.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    periodFrom: timestamp("period_from", { withTimezone: true }).notNull(),
+    periodTo: timestamp("period_to", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("certificate_links_token_idx").on(t.tokenHash), index("certificate_links_advertiser_idx").on(t.advertiserId)],
+);

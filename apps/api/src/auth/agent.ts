@@ -7,7 +7,7 @@ export interface AgentContext {
 }
 
 const TOKEN_PREFIX = "nbr_";
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 /** Genera un token nuevo. El prefijo permite detectarlo si se filtra en un repositorio. */
 export function generateAgentToken(): { token: string; tokenHash: string } {
