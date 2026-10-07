@@ -35,7 +35,7 @@ describe("GET /public/stations/:slug", () => {
   it("responde sin sesión con el nombre, el flujo y nada sonando si todavía no hay emisiones", async () => {
     const response = await get("fm-a");
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ name: "FM A", slug: "fm-a", streamUrl: STREAM_URL, nowPlaying: null, recent: [] });
+    expect(response.json()).toEqual({ name: "FM A", slug: "fm-a", streamUrl: STREAM_URL, nowPlaying: null, live: null, recent: [] });
   });
 
   it("informa qué suena y lo que sonó antes, del más nuevo al más viejo", async () => {
@@ -75,7 +75,7 @@ describe("GET /public/stations/:slug", () => {
   it("no expone identificadores ni datos internos", async () => {
     await addPlay("Tema actual", 2);
     const body = (await get("fm-a")).json();
-    expect(Object.keys(body).sort()).toEqual(["name", "nowPlaying", "recent", "slug", "streamUrl"]);
+    expect(Object.keys(body).sort()).toEqual(["live", "name", "nowPlaying", "recent", "slug", "streamUrl"]);
     expect(Object.keys(body.nowPlaying).sort()).toEqual(["artist", "startedAt", "title"]);
     expect(JSON.stringify(body)).not.toContain(fx.stationA);
   });

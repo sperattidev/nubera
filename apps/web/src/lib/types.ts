@@ -50,6 +50,8 @@ export interface OnAirPlay {
 export interface OnAirBlock {
   id: string;
   name: string;
+  /** "live" = programa en vivo: la automatización no emite. */
+  mode?: "auto" | "live";
   start: string;
   end: string;
   rotation: {

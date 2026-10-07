@@ -87,6 +87,27 @@ Requisitos para publicarlo:
 - [ ] Se desconecta el cable de red unos minutos: la antena sigue sonando con la música de emergencia y, al volver la red, retoma la programación.
 - [ ] Se corta y se vuelve a dar energía a la PC: arranca sola y vuelve a **Conectado**.
 
+## Programas en vivo
+
+Un programa en vivo se carga en la grilla como un bloque de tipo **Programa en vivo** (Programación → bloque → *Tipo de bloque*), con su nombre, sus días y su horario, por ejemplo "Mañanas con Juan, de lunes a viernes de 8 a 12". Mientras dura:
+
+- **Nubera no emite nada:** ni música ni avisos. La salida por la placa de sonido queda en silencio, así que no se mezcla con la voz del locutor. El locutor abre el micrófono en la consola y la consola sigue alimentando al transmisor, como siempre.
+- **El panel y la página pública lo muestran:** *Aire* indica que hay un programa en vivo, la grilla lo marca con un micrófono, y el reproductor público muestra el nombre del programa en lugar de un tema.
+- **Al terminar el horario la automatización vuelve sola.** El motor consulta el modo cada 5 segundos.
+
+**Qué escuchan por internet durante el programa.** El streaming sale de la misma PC, así que necesita la voz del locutor:
+
+- Sin conexión de la consola a la PC, el streaming queda **en silencio** durante el programa.
+- Con una salida de la consola (la mezcla que va al transmisor, mejor desde una salida auxiliar o de grabación) conectada a una **entrada de línea** de la interfaz de audio de la PC, se define `NUBERA_LIVE_INPUT_DEVICE` en el `.env` del estudio (por ejemplo `plughw:1,0`; `arecord -l` lista las entradas) y el streaming toma esa señal durante el vivo. La interfaz tiene que tener entrada y salida.
+
+> **Sin probar con hardware real.** La conmutación está probada contra el servidor (pausa de la automatización, vuelta al terminar, silencio en la antena), pero no la captura de la consola con una placa de sonido de verdad.
+
+**Todavía no incluido:**
+
+- Locutores remotos (que transmiten desde su casa o celular).
+- Tandas publicitarias dentro de un programa en vivo: hoy no se emiten avisos durante el vivo y, por lo tanto, no figuran en el certificado de emisión.
+- Entrar en vivo antes de horario con un botón, sin esperar a que empiece el bloque.
+
 ## Qué falta construir
 
 | Pendiente | Por qué hace falta |

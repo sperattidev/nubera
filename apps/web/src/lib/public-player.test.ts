@@ -37,6 +37,12 @@ describe("trackLabel", () => {
     expect(trackLabel({ title: "Tema", artist: null, startedAt: "2026-10-06T12:00:00Z" }, "FM Demo").subtitle).toBe("FM Demo");
   });
 
+  it("durante un programa en vivo muestra el programa y la emisora", () => {
+    expect(trackLabel(null, "FM Demo", { program: "Mañanas con Juan" })).toEqual({ title: "Mañanas con Juan", subtitle: "En vivo · FM Demo" });
+    // El programa manda sobre un tema que haya quedado de antes.
+    expect(trackLabel({ title: "Tema", artist: null, startedAt: "2026-10-06T12:00:00Z" }, "FM Demo", { program: "Deportes" }).title).toBe("Deportes");
+  });
+
   it("sin dato muestra la emisora en vivo", () => {
     expect(trackLabel(null, "FM Demo")).toEqual({ title: "FM Demo", subtitle: "En vivo" });
   });

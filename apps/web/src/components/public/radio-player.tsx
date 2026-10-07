@@ -36,7 +36,7 @@ export function RadioPlayer({ initial, variant }: { initial: PublicStation; vari
   });
   const station = query.data;
   const stream = useRadioStream(station.streamUrl);
-  const label = trackLabel(station.nowPlaying, station.name);
+  const label = trackLabel(station.nowPlaying, station.name, station.live);
   const active = stream.status !== "idle" && stream.status !== "error";
   const busy = stream.status === "connecting" || stream.status === "reconnecting";
 

@@ -108,6 +108,7 @@ Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con
 | POST | `/users/:userId/password` | `users:manage` | Restablece la contraseña de otra persona y cierra sus sesiones |
 | GET | `/stations` | sesión | Emisoras del cliente |
 | PATCH | `/stations/:stationId` | `stations:manage` | Edita nombre y zona horaria |
+| GET | `/playout/mode` | token de agente | Modo de la emisora ahora (`auto` o `live` con el nombre del programa); el motor lo consulta para pausar la automatización |
 | GET | `/playout/plays/:playId/audio` | token de agente | El motor del estudio descarga el audio de una emisión de su emisora |
 | GET | `/public/stations/:slug` | pública | Datos de la emisora para su página pública: nombre, flujo, qué suena y lo último que sonó (sin avisos ni datos internos) |
 | GET | `/stations/:stationId/on-air` | `plays:read` | Estado del aire: suena ahora, lo que viene, lo anterior y el motor |
@@ -186,6 +187,8 @@ La dirección del flujo de audio se define con `NUBERA_PUBLIC_STREAM_URL` (ver `
 Hardware, conexión a la antena y al streaming, y puesta en marcha del motor de audio: [docs/instalacion-estudio.md](docs/instalacion-estudio.md).
 
 El motor del estudio (`infra/studio`) descarga la programación de la API con su token, guarda los audios en un caché local y emite por la placa de sonido (`NUBERA_ALSA_DEVICE`) y, opcionalmente, a Icecast. Se instala con `infra/studio/install.sh`. El mismo script (`infra/liquidsoap/radio.liq`) sirve en desarrollo, leyendo los audios de una carpeta compartida.
+
+**Programas en vivo:** un bloque de la grilla puede ser un programa en vivo. Durante ese horario la automatización no emite (la antena queda en manos del locutor y la consola), el panel y el reproductor público muestran el programa, y al terminar vuelve sola. Ver [docs/instalacion-estudio.md](docs/instalacion-estudio.md#programas-en-vivo).
 
 ## Publicidad
 

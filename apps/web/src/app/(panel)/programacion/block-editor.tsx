@@ -1,13 +1,14 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Megaphone, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Megaphone, Mic, Plus, Trash2 } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api, errorMessage } from "@/lib/api";
@@ -19,6 +20,7 @@ import {
   describeDays,
   formProblems,
   formToPayload,
+  formToRotation,
   newForm,
   overlapsOf,
   TIME_OPTIONS,
@@ -90,7 +92,7 @@ function EditorForm({
     [editing?.id, form.days, form.start, form.end, blocks],
   );
   const shares = useMemo(() => poolShares(form.pool.filter((entry) => entry.weight > 0)), [form.pool]);
-  const rules = useMemo(() => describeRules(formToPayload(form).rotation), [form]);
+  const rules = useMemo(() => describeRules(formToRotation(form)), [form]);
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["schedule", stationId] });
@@ -144,11 +146,31 @@ function EditorForm({
         </DialogHeader>
 
         <fieldset disabled={!canWrite || save.isPending} className="grid min-w-0 gap-6 border-0 p-0">
+          {/* Tipo de bloque */}
+          <Section
+            title="Tipo de bloque"
+            hint={
+              form.mode === "live"
+                ? "Durante este programa la automatización no emite nada: el locutor y la consola se hacen cargo. Al terminar, vuelve sola."
+                : "La automatización elige los audios según las reglas de abajo."
+            }
+          >
+            <Segmented
+              label="Tipo de bloque"
+              value={form.mode}
+              onChange={(mode) => set("mode", mode)}
+              options={[
+                { id: "auto", label: "Automático" },
+                { id: "live", label: "Programa en vivo" },
+              ]}
+            />
+          </Section>
+
           {/* Datos generales */}
           <Section title="Cuándo">
             <div className="grid gap-2">
               <Label htmlFor="block-name">Nombre</Label>
-              <Input id="block-name" value={form.name} maxLength={120} placeholder="Ej.: Mañana de lunes a viernes" onChange={(event) => set("name", event.target.value)} autoFocus={canWrite} />
+              <Input id="block-name" value={form.name} maxLength={120} placeholder={form.mode === "live" ? "Ej.: Mañanas con Juan" : "Ej.: Mañana de lunes a viernes"} onChange={(event) => set("name", event.target.value)} autoFocus={canWrite} />
             </div>
 
             <div className="grid gap-2">
@@ -187,6 +209,8 @@ function EditorForm({
             </div>
           </Section>
 
+          {form.mode === "auto" && (
+          <>
           {/* Mezcla */}
           <Section title="Qué suena" hint="Cada vez que hay que elegir un tema, se sortea una categoría según su peso.">
             <div className="grid gap-2">
@@ -302,9 +326,11 @@ function EditorForm({
             </div>
             <p className="text-xs text-muted-foreground">Con 0 no se aplica. Si no hay alternativa, el motor afloja la regla antes que dejar el aire sin música.</p>
           </Section>
+          </>
+          )}
         </fieldset>
 
-        {rules.length > 0 && (
+        {form.mode === "auto" && rules.length > 0 && (
           <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
             <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">Resumen de reglas</p>
             <ul className="grid gap-1 text-[13px]">

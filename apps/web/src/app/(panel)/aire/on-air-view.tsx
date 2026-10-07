@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CalendarClock, ListMusic, Radio, Server, WifiOff } from "lucide-react";
+import { AlertTriangle, CalendarClock, ListMusic, Mic, Radio, Server, WifiOff } from "lucide-react";
 import { Equalizer } from "@/components/equalizer";
 import { CategoryBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -301,8 +301,17 @@ function BlockCard({ block }: { block: OnAirBlock | null }) {
           </p>
         ) : (
           <div className="grid gap-5">
-            <p className="text-base font-semibold tracking-tight">{block.name}</p>
+            <p className="flex items-center gap-2 text-base font-semibold tracking-tight">
+              {block.mode === "live" && <Mic className="size-4 text-onair" aria-label="Programa en vivo" />}
+              {block.name}
+            </p>
 
+            {block.mode === "live" ? (
+              <p className="rounded-lg border border-onair/30 bg-onair/10 px-4 py-3 text-[13px]">
+                <strong className="font-medium">Programa en vivo.</strong> La automatización está en pausa: el locutor y la consola se hacen cargo, y la emisión vuelve a Nubera cuando termina el programa.
+              </p>
+            ) : (
+            <>
             <div className="grid gap-2.5">
               <div className="flex h-2 overflow-hidden rounded-full bg-muted">
                 {poolShares(block.rotation.pool).map((share) => (
@@ -333,6 +342,8 @@ function BlockCard({ block }: { block: OnAirBlock | null }) {
                   </li>
                 ))}
               </ul>
+            )}
+            </>
             )}
           </div>
         )}

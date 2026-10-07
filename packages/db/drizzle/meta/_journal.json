@@ -43,6 +43,13 @@
       "when": 1791351397034,
       "tag": "0005_certificate_links",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791394180559,
+      "tag": "0006_live_blocks",
+      "breakpoints": true
     }
   ]
 }

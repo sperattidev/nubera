@@ -1,4 +1,4 @@
-import { formatClock, parseClock } from "@nubera/core";
+import { formatClock, parseClock, type BlockMode } from "@nubera/core";
 import type { AssetCategory } from "./categories";
 import type { OnAirBlock } from "./types";
 
@@ -10,8 +10,13 @@ export interface ScheduleBlock {
   days: number[];
   start: string;
   end: string;
+  /** Sin dato se entiende automático. */
+  mode?: BlockMode;
   rotation: OnAirBlock["rotation"];
 }
+
+/** ¿Es un programa en vivo? */
+export const isLive = (block: Pick<ScheduleBlock, "mode">): boolean => block.mode === "live";
 
 export const DAYS = [
   { iso: 1, short: "Lun", long: "Lunes", initial: "L" },
@@ -195,6 +200,7 @@ export function describeDays(days: readonly number[]): string {
 
 export interface BlockForm {
   name: string;
+  mode: BlockMode;
   days: number[];
   start: string;
   end: string;
@@ -213,6 +219,7 @@ export function newForm(isoDay: number, startMinute: number): BlockForm {
   const end = Math.min(start + 120, MINUTES_PER_DAY);
   return {
     name: "",
+    mode: "auto",
     days: [isoDay],
     start: formatClock(start),
     end: formatClock(end),
@@ -230,6 +237,7 @@ export function blockToForm(block: ScheduleBlock): BlockForm {
   const { rotation } = block;
   return {
     name: block.name,
+    mode: block.mode ?? "auto",
     days: [...block.days],
     start: block.start,
     end: block.end,
@@ -243,20 +251,26 @@ export function blockToForm(block: ScheduleBlock): BlockForm {
   };
 }
 
-/** Cuerpo para la API (POST y PUT). */
+/** Las reglas de rotación del formulario (solo aplican a un bloque automático). */
+export function formToRotation(form: BlockForm) {
+  return {
+    pool: form.pool,
+    insertions: form.insertions,
+    artistSeparation: form.artistSeparation,
+    trackSeparationMinutes: form.trackSeparationMinutes,
+    ...(form.adsEnabled ? { ads: { everyTracks: form.adsEveryTracks, spotsPerBreak: form.adsSpotsPerBreak } } : {}),
+  };
+}
+
+/** Cuerpo para la API (POST y PUT). Un programa en vivo no lleva rotación. */
 export function formToPayload(form: BlockForm) {
   return {
     name: form.name.trim(),
+    mode: form.mode,
     days: [...form.days].sort((a, b) => a - b),
     start: form.start,
     end: form.end,
-    rotation: {
-      pool: form.pool,
-      insertions: form.insertions,
-      artistSeparation: form.artistSeparation,
-      trackSeparationMinutes: form.trackSeparationMinutes,
-      ...(form.adsEnabled ? { ads: { everyTracks: form.adsEveryTracks, spotsPerBreak: form.adsSpotsPerBreak } } : {}),
-    },
+    ...(form.mode === "live" ? {} : { rotation: formToRotation(form) }),
   };
 }
 
@@ -271,6 +285,8 @@ export function formProblems(form: BlockForm): string[] {
   if (toMinutes(form.end) <= toMinutes(form.start)) {
     problems.push("El fin tiene que ser posterior al inicio. Para cruzar la medianoche, usá dos bloques.");
   }
+  // Un programa en vivo no tiene mezcla ni reglas que validar.
+  if (form.mode === "live") return problems;
   if (form.pool.length === 0) problems.push("Agregá al menos una categoría a la mezcla.");
   if (hasDuplicates(form.pool.map((entry) => entry.category))) problems.push("Una categoría no puede repetirse en la mezcla.");
   if (form.pool.some((entry) => !inRange(entry.weight, 1, 100))) problems.push("El peso de cada categoría va de 1 a 100.");
