@@ -11,6 +11,8 @@ export interface PublicStation {
   slug: string;
   streamUrl: string | null;
   nowPlaying: PublicTrack | null;
+  /** Programa en vivo en este momento, o null si suena la automatización. */
+  live?: { program: string } | null;
   recent: PublicTrack[];
 }
 
@@ -40,7 +42,10 @@ export interface TrackLabel {
 }
 
 /** Qué mostrar como "suena ahora": el tema, o el nombre de la emisora si no hay dato. */
-export function trackLabel(nowPlaying: PublicTrack | null, stationName: string): TrackLabel {
+export function trackLabel(nowPlaying: PublicTrack | null, stationName: string, live?: { program: string } | null): TrackLabel {
+  if (live) {
+    return { title: live.program, subtitle: `En vivo · ${stationName}` };
+  }
   if (!nowPlaying) {
     return { title: stationName, subtitle: "En vivo" };
   }

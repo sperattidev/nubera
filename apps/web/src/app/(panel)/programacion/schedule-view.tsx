@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api, errorMessage } from "@/lib/api";
 import { CATEGORY_COLOR, CATEGORY_LABEL } from "@/lib/categories";
 import { poolShares } from "@/lib/rotation-summary";
-import { coverage, DAYS, describeDays, dominantCategory, payloadWithTimes, toMinutes, type ScheduleBlock } from "@/lib/schedule";
+import { coverage, DAYS, describeDays, dominantCategory, isLive, payloadWithTimes, toMinutes, type ScheduleBlock } from "@/lib/schedule";
 import { useSession } from "@/lib/session";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
@@ -253,7 +253,8 @@ function DayAgenda({
       ) : (
         <ul className="grid gap-2.5">
           {items.map((block) => {
-            const color = CATEGORY_COLOR[dominantCategory(block.rotation)];
+            const live = isLive(block);
+            const color = live ? "var(--onair)" : CATEGORY_COLOR[dominantCategory(block.rotation)];
             return (
               <li key={block.id}>
                 <button
@@ -270,11 +271,15 @@ function DayAgenda({
                     </span>
                   </span>
                   <span className="text-xs text-muted-foreground">{describeDays(block.days)}</span>
+                  {live ? (
+                    <span className="text-xs font-medium text-(--c)">Programa en vivo</span>
+                  ) : (
                   <span className="flex h-1.5 overflow-hidden rounded-full bg-background/40" aria-hidden>
                     {poolShares(block.rotation.pool).map((share) => (
                       <span key={share.category} title={CATEGORY_LABEL[share.category]} style={{ width: `${share.percent}%`, backgroundColor: CATEGORY_COLOR[share.category] }} />
                     ))}
                   </span>
+                  )}
                 </button>
               </li>
             );

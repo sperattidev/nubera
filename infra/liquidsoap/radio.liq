@@ -7,6 +7,9 @@
 #   - Estudio: con NUBERA_CACHE_DIR los descarga de la API y los guarda en un caché local;
 #     un audio ya descargado no se vuelve a bajar. Si se corta internet, la programación se
 #     detiene (la decide la API) y suena la biblioteca de emergencia local (/media/music).
+# Durante un programa en vivo (un bloque de ese tipo en la grilla) la automatización se pausa: la antena
+# queda en silencio, porque el locutor y la consola se hacen cargo, y el streaming toma la entrada de la
+# consola si hay una (NUBERA_LIVE_INPUT_DEVICE).
 # Y emite a una o a las dos salidas: la placa de sonido que alimenta la consola y el transmisor
 # (NUBERA_ALSA_DEVICE) y/o un servidor Icecast para el streaming (ICECAST_HOST).
 
@@ -171,6 +174,42 @@ else
   mksafe(fallback_audio)
 end
 
+# --- Programas en vivo ---
+
+live_input_device = environment.get(default="", "NUBERA_LIVE_INPUT_DEVICE")
+is_live = ref(false)
+
+# Pregunta a la API si ahora hay un programa en vivo. También sirve de señal de vida del motor.
+def check_mode() =
+  try
+    response = http.get(headers=auth_headers, timeout=5., "#{api_url}/playout/mode")
+    if response.status_code == 200 then
+      let json.parse (info : {mode: string, program: string?}) = response
+      live_now = info.mode == "live"
+      if live_now != is_live() then
+        if live_now then
+          log.important("Programa en vivo: la automatización se pausa")
+        else
+          log.important("Fin del programa en vivo: vuelve la automatización")
+        end
+      end
+      is_live := live_now
+    end
+  catch err do
+    log.severe("No se pudo consultar el modo: #{error.message(err)}")
+  end
+end
+
+if api_enabled then
+  thread.run(fast=false, every=5., check_mode)
+end
+
+# Retorno de la consola (entrada de línea de la PC): lo que sale al aire, con la voz del locutor.
+live_input = if live_input_device != "" then mksafe(input.alsa(device=live_input_device)) else blank() end
+
+antenna = switch(track_sensitive=false, [({is_live()}, blank()), ({true}, radio)])
+stream = switch(track_sensitive=false, [({is_live()}, live_input), ({true}, radio)])
+
 # --- Salidas ---
 
 icecast_enabled = icecast_host != ""
@@ -178,7 +217,7 @@ alsa_enabled = alsa_device != ""
 
 if alsa_enabled then
   log.important("Salida a la placa de sonido: #{alsa_device}")
-  output.alsa(device=alsa_device, radio)
+  output.alsa(device=alsa_device, antenna)
 end
 
 if icecast_enabled then
@@ -190,7 +229,7 @@ if icecast_enabled then
     password=icecast_password,
     mount=icecast_mount,
     name=icecast_name,
-    radio
+    stream
   )
 end
 

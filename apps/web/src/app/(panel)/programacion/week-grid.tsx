@@ -2,6 +2,7 @@
 
 import { formatClock, localTime } from "@nubera/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Mic } from "lucide-react";
 import { CATEGORY_COLOR } from "@/lib/categories";
 import { poolShares } from "@/lib/rotation-summary";
 import {
@@ -9,6 +10,7 @@ import {
   DAYS,
   describeDays,
   dominantCategory,
+  isLive,
   layoutDay,
   MINUTES_PER_DAY,
   nudge,
@@ -309,10 +311,11 @@ function BlockCard({
   // Si el arrastre se hizo cargo del puntero, el clic que sigue no debe abrir el editor por segunda vez.
   const handledByDrag = useRef(false);
   const inset = Math.min(depth, MAX_STACK) * STACK_INSET_PX;
-  const color = CATEGORY_COLOR[dominantCategory(block.rotation)];
+  const live = isLive(block);
+  const color = live ? "var(--onair)" : CATEGORY_COLOR[dominantCategory(block.rotation)];
   const height = minutesToPx(end - start);
   const compact = height < 56 && !dragging;
-  const shares = poolShares(block.rotation.pool);
+  const shares = live ? [] : poolShares(block.rotation.pool);
 
   function onKeyDown(event: React.KeyboardEvent) {
     if (!canWrite || !event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
@@ -372,13 +375,16 @@ function BlockCard({
           </span>
         )}
 
-        <span className="truncate text-[12px] font-semibold leading-tight">{block.name}</span>
+        <span className="flex items-center gap-1 truncate text-[12px] font-semibold leading-tight">
+          {live && <Mic className="size-3 shrink-0 text-(--c)" aria-label="Programa en vivo" />}
+          <span className="truncate">{block.name}</span>
+        </span>
         {!compact && (
           <span className="truncate font-mono text-[11px] tabular-nums text-muted-foreground">
             {block.start}–{block.end}
           </span>
         )}
-        {height >= 84 && (
+        {height >= 84 && shares.length > 0 && (
           <span className="mt-auto flex h-1.5 overflow-hidden rounded-full bg-background/40" aria-hidden>
             {shares.map((share) => (
               <span key={share.category} style={{ width: `${share.percent}%`, backgroundColor: CATEGORY_COLOR[share.category] }} />

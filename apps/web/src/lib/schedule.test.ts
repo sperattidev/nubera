@@ -7,6 +7,7 @@ import {
   dominantCategory,
   formProblems,
   formToPayload,
+  formToRotation,
   layoutDay,
   newForm,
   nudge,
@@ -324,6 +325,7 @@ describe("formulario", () => {
     const payload = formToPayload(blockToForm(original));
     expect(payload).toEqual({
       name: "Mañana",
+      mode: "auto",
       days: [1, 2, 3, 4, 5],
       start: "06:00",
       end: "12:00",
@@ -332,8 +334,7 @@ describe("formulario", () => {
   });
 
   it("sin tandas, la rotación no lleva la clave ads", () => {
-    const payload = formToPayload(newForm(1, 0));
-    expect("ads" in payload.rotation).toBe(false);
+    expect("ads" in formToRotation(newForm(1, 0))).toBe(false);
   });
 
   it("ordena los días y recorta el nombre", () => {
