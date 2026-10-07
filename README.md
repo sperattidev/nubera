@@ -52,6 +52,7 @@ Aplicación Next.js (App Router) con Tailwind CSS y componentes accesibles basad
 | Pantalla | Qué muestra |
 |---|---|
 | **Aire** | Qué suena ahora con cronómetro, qué viene, lo último emitido, estado del motor de audio y bloque vigente. Se actualiza cada 3 segundos. |
+| **Programación** | Grilla semanal con los bloques apilados según cuál manda, línea de la hora actual, cobertura de la semana y franjas sin programar. Se crean y editan bloques (días, horario, mezcla de categorías, intercalados, tandas y separaciones) con un resumen de las reglas. En el celular se ve como agenda por día. |
 | **Biblioteca** | Búsqueda, filtro por categoría, escucha en el navegador, subida de varios archivos con progreso, edición y borrado. |
 | **Historial** | Lo que salió al aire en el día, ayer, 7 o 30 días, con totales por categoría. |
 
@@ -125,7 +126,7 @@ En la subida, los campos `title`, `artist` y `category` deben enviarse antes del
 
 ## Programación y motor de audio
 
-La grilla semanal se compone de **bloques**: días, horario local de la emisora y reglas de rotación. Si dos bloques se superponen, gana el que empieza más tarde. Un bloque no cruza la medianoche; para eso se usan dos.
+La grilla semanal se compone de **bloques**: días, horario local de la emisora y reglas de rotación. Si dos bloques se superponen, gana el que empieza más tarde (y si empiezan a la vez, el más corto). Un bloque no cruza la medianoche; para eso se usan dos.
 
 ```json
 {
