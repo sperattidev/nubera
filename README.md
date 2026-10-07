@@ -163,6 +163,10 @@ docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build
 docker compose --env-file .env -f infra/docker/compose.dev.yml up -d liquidsoap
 ```
 
+## Instalación en el estudio
+
+Hardware, conexión a la antena y al streaming, y puesta en marcha del motor de audio: [docs/instalacion-estudio.md](docs/instalacion-estudio.md).
+
 ## Publicidad
 
 Un **anunciante** (con su rubro) tiene **campañas** en una emisora: vigencia (fechas locales, inclusivas), días y franja horaria, un tope de emisiones por día, un peso relativo y los avisos que rota (audios de categoría `ad`). Las tandas se activan por bloque de la grilla:
