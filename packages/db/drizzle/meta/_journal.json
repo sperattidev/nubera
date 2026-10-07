@@ -29,6 +29,13 @@
       "when": 1791324985254,
       "tag": "0003_ads",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791338498774,
+      "tag": "0004_public_slug",
+      "breakpoints": true
     }
   ]
 }

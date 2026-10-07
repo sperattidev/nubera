@@ -19,6 +19,7 @@ const app = buildApp({
   maxUploadBytes,
   secureCookies: process.env.NODE_ENV === "production",
   trustProxy: process.env.TRUST_PROXY === "true",
+  publicStreamUrl: process.env.NUBERA_PUBLIC_STREAM_URL || null,
 });
 app.addHook("onClose", async () => {
   await close();

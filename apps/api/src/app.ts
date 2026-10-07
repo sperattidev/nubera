@@ -11,6 +11,7 @@ import { agentRoutes } from "./routes/agents.js";
 import { assetRoutes } from "./routes/assets.js";
 import { authRoutes } from "./routes/auth.js";
 import { playoutRoutes } from "./routes/playout.js";
+import { publicRoutes } from "./routes/public.js";
 import { reportRoutes } from "./routes/reports.js";
 import { scheduleRoutes } from "./routes/schedule.js";
 import { stationRoutes } from "./routes/stations.js";
@@ -29,6 +30,10 @@ export interface AppDependencies {
   loginRateLimitMax?: number;
   /** Confiar en X-Forwarded-For (solo detrás de un proxy propio). */
   trustProxy?: boolean;
+  /** Dirección pública del flujo de audio que escuchan los oyentes (la página pública la muestra). */
+  publicStreamUrl?: string | null;
+  /** Segundos que se reutiliza la respuesta pública de una emisora. */
+  publicCacheSeconds?: number;
   /** Reloj y azar inyectables, para tests deterministas. */
   now?: () => Date;
   random?: () => number;
@@ -42,6 +47,8 @@ export function buildApp({
   sessionTtlSeconds = DEFAULT_SESSION_TTL_SECONDS,
   loginRateLimitMax = 5,
   trustProxy = false,
+  publicStreamUrl = null,
+  publicCacheSeconds = 5,
   now = () => new Date(),
   random,
 }: AppDependencies): FastifyInstance {
@@ -85,6 +92,7 @@ export function buildApp({
   app.register(adRoutes, { db });
   app.register(reportRoutes, { db, now });
   app.register(stationRoutes, { db, now });
+  app.register(publicRoutes, { db, now, streamUrl: publicStreamUrl, cacheSeconds: publicCacheSeconds });
 
   return app;
 }
