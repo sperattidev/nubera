@@ -65,6 +65,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:?definir en .env}:${POSTGRES_PASSWORD:?definir en .env}@postgres:5432/${POSTGRES_DB:?definir en .env}
       MEDIA_DIR: /storage
       TRUST_PROXY: "false"
+      NUBERA_PUBLIC_STREAM_URL: ${NUBERA_PUBLIC_STREAM_URL:-}
     ports:
       - "127.0.0.1:${NUBERA_API_PORT:-53000}:3000"
     volumes:

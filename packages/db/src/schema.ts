@@ -44,7 +44,8 @@ export const stations = pgTable(
     timezone: text("timezone").notNull().default("America/Argentina/Buenos_Aires"),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("stations_tenant_slug_idx").on(t.tenantId, t.slug)],
+  // El slug forma parte de la dirección pública de la emisora, por eso es único en toda la plataforma.
+  (t) => [uniqueIndex("stations_slug_idx").on(t.slug)],
 );
 
 /** Usuarios del panel. La autenticación se agrega en una etapa posterior. */
