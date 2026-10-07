@@ -228,3 +228,36 @@
   scrollbar-width: thin;
   scrollbar-color: var(--input) transparent;
 }
+
+/* ---- Impresión: el certificado de emisión se guarda como PDF desde el navegador ---- */
+@media print {
+  :root,
+  :root.dark {
+    --background: #fff;
+    --foreground: #111827;
+    --card: #fff;
+    --card-foreground: #111827;
+    --muted: #f3f4f6;
+    --muted-foreground: #4b5563;
+    --border: #d1d5db;
+    --primary: #3730a3;
+    --primary-foreground: #fff;
+  }
+  body {
+    background: #fff !important;
+    background-image: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-sheet {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  tr {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
