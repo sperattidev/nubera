@@ -54,7 +54,7 @@ Aplicación Next.js (App Router) con Tailwind CSS y componentes accesibles basad
 | **Aire** | Qué suena ahora con cronómetro, qué viene, lo último emitido, estado del motor de audio y bloque vigente. Se actualiza cada 3 segundos. |
 | **Programación** | Grilla semanal con los bloques apilados según cuál manda, línea de la hora actual, cobertura de la semana y franjas sin programar. Se crean y editan bloques (días, horario, mezcla de categorías, intercalados, tandas y separaciones) con un resumen de las reglas. Los bloques se arrastran para cambiarlos de horario y se estiran desde los bordes (también con Alt + flechas, y Esc cancela); los que quedan tapados por otro muestran su nombre en una solapa lateral. En el celular se ve como agenda por día. |
 | **Biblioteca** | Búsqueda, filtro por categoría, escucha en el navegador, subida de varios archivos con progreso, edición y borrado. |
-| **Publicidad** | Campañas con su vigencia, estado y avance (se pausan con un interruptor), anunciantes con su rubro y el certificado de emisión de cada uno: totales, gráfico por día, detalle con hora local, descarga en CSV y PDF para imprimir. |
+| **Publicidad** | Campañas con su vigencia, estado y avance (se pausan con un interruptor), anunciantes con su rubro y el certificado de emisión de cada uno: totales, gráfico por día, detalle con hora local, descarga en CSV y PDF para imprimir. Desde ahí se puede **compartir un enlace** (con botón de WhatsApp) para que el anunciante vea e imprima su certificado sin tener cuenta: el enlace vence, se puede revocar y nunca muestra datos internos (`/certificado/<token>`). |
 | **Ajustes** | Mi cuenta (datos y cambio de contraseña) para todos; para el dueño además el equipo (alta con contraseña generada, roles, desactivar, restablecer contraseña), los datos de la emisora y la zona horaria, y los tokens del motor de audio (se muestran una sola vez, con estado de conexión) y la dirección y el código del reproductor público. |
 | **Historial** | Lo que salió al aire en el día, ayer, 7 o 30 días, con totales por categoría. |
 
@@ -128,6 +128,9 @@ Si se cambia el esquema (`packages/db/src/schema.ts`), generar la migración con
 | GET | `/stations/:stationId/campaigns[/:campaignId]` | `ads:read` | Campañas (`advertiserId`, `active`) |
 | POST, PUT, DELETE | `/stations/:stationId/campaigns[/:campaignId]` | `ads:write` | Alta, edición y baja de campañas |
 | GET | `/advertisers/:advertiserId/report` | `ads:read` | Certificado de emisión (`from`, `to`, `stationId`, `format=json\|csv`) |
+| POST, GET | `/advertisers/:advertiserId/certificate-links` | `ads:write`, `ads:read` | Crea (y lista) enlaces públicos al certificado de un anunciante: fijan emisora y período, vencen (1 a 90 días) y el token se muestra solo al crearlo |
+| DELETE | `/certificate-links/:linkId` | `ads:write` | Revoca un enlace: deja de abrirse de inmediato |
+| GET | `/public/certificates/:token` | enlace | Certificado de emisión de un enlace vigente (`?format=csv` para el detalle); vencido, revocado o inexistente responde 404 |
 
 En la subida, los campos `title`, `artist` y `category` deben enviarse antes del archivo. Formatos: mp3, wav, flac, ogg, m4a y aac. Los archivos se guardan por contenido (SHA-256), por lo que un mismo audio no se duplica.
 
