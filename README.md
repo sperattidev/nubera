@@ -163,6 +163,35 @@ docker compose --env-file .env -f infra/docker/compose.dev.yml up -d --build
 docker compose --env-file .env -f infra/docker/compose.dev.yml up -d liquidsoap
 ```
 
+## Publicación en internet
+
+Nubera sale a internet por un **Cloudflare Tunnel**: el servidor se conecta hacia Cloudflare, así que no se abre ningún puerto de entrada ni se toca el proxy o el firewall de otros servicios del mismo equipo. Cloudflare pone el HTTPS.
+
+1. En Cloudflare: **Zero Trust → Networks → Tunnels → Create a tunnel** (tipo *Cloudflared*). Copiar el token **sin pegarlo en chats ni en el repositorio**.
+2. En la pestaña *Public Hostnames* del túnel, agregar dos nombres. Si el dominio ya tenía un registro DNS con ese nombre, borrarlo antes:
+
+   | Nombre público | Servicio | Qué sirve |
+   |---|---|---|
+   | `<dominio>` | `HTTP` · `web:3001` | Panel, reproductor público (`/radio/<slug>`) y su versión incrustable |
+   | `stream.<dominio>` | `HTTP` · `icecast:8000`, con *Path* `^/live` | El flujo de audio. El *Path* evita exponer las páginas de administración de Icecast. |
+
+3. En el servidor, guardar el token en `.env` sin dejarlo en el historial del terminal, y apuntar el reproductor al flujo público:
+
+```bash
+read -rsp "Token del túnel: " T && printf 'CLOUDFLARE_TUNNEL_TOKEN=%s\n' "$T" >> .env; unset T
+# y en .env: NUBERA_PUBLIC_STREAM_URL=https://stream.<dominio>/live
+```
+
+4. Levantar todo con el túnel:
+
+```bash
+docker compose -f infra/docker/compose.dev.yml -f infra/docker/compose.tunnel.yml --env-file .env up -d --build
+```
+
+Con esto la API pasa a modo producción (la cookie de sesión es `Secure`) y el límite de intentos de login usa la IP real del visitante que informa Cloudflare. En el panel de Cloudflare conviene además activar *Always Use HTTPS* y crear una regla de límite de pedidos para `/api/auth/login`.
+
+El audio en vivo pasa por la red de Cloudflare. Para audiencias grandes conviene servirlo directo desde un servidor propio, sin intermediarios.
+
 ## Instalación en el estudio
 
 Hardware, conexión a la antena y al streaming, y puesta en marcha del motor de audio: [docs/instalacion-estudio.md](docs/instalacion-estudio.md).

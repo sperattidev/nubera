@@ -1,0 +1,34 @@
+# Publicación en internet por Cloudflare Tunnel, sobre compose.dev.yml:
+#
+#   docker compose -f infra/docker/compose.dev.yml -f infra/docker/compose.tunnel.yml --env-file .env up -d
+#
+# El túnel sale desde el servidor hacia Cloudflare: no se abre ningún puerto de entrada ni se
+# toca el proxy o el firewall de otros servicios del mismo equipo. Los nombres públicos y a qué
+# servicio apunta cada uno se definen en el panel de Cloudflare (ver el README).
+name: nubera
+
+services:
+  # Detrás de HTTPS: la cookie de sesión pasa a ser "Secure" y la IP del visitante la informa
+  # Cloudflare (el límite de intentos de login depende de ella).
+  api:
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: "true"
+
+  web:
+    environment:
+      NUBERA_TRUST_FORWARDED: "true"
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.0
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?definir en .env}
+    depends_on:
+      web:
+        condition: service_healthy
+      icecast:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.25
